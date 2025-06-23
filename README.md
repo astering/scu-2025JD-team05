@@ -4,4 +4,3 @@
 
 https://wiki.suncaper.net/pages/viewpage.action?pageId=99614867
 
-https://github.com/astering/scu-2025JD-team05
