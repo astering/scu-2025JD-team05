@@ -10,22 +10,22 @@ from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOpe
 # 确保这些路径对于 Airflow Worker 是可访问的
 # 如果脚本在 HDFS 上，使用 hdfs:///... 路径
 SPARK_SCRIPTS_PATH = "dags/spark_etl_pipeline/scripts"
-HDFS_RAW_DATA_PATH = "hdfs://node-master:9000/yelp"
-LOCAL_FILE_DATA_PATH = "~/yelp"
-FILE_NAME = "yelp_academic_dataset_business.json"
+HDFS_RAW_DATA_PATH = "hdfs://node-master:9000/mir"
+LOCAL_FILE_DATA_PATH = "~/mir"
+FILE_NAME = "lastfm_subset"
 
 # Hive 数据库和表名
 ODS_DB = "ods"
 DW_DB = "dw"
-ODS_TABLE = "ods_business"
-DW_TABLE = "dw_business"
+ODS_TABLE = "ods_music"
+DW_TABLE = "dw_music"
 
 ODS_TABLE_FQN = f"{ODS_DB}.{ODS_TABLE}"  # FQN: Fully Qualified Name
 DW_TABLE_FQN = f"{DW_DB}.{DW_TABLE}"
 
 with DAG(
         dag_id="spark_etl_hdfs_to_hive_dw",
-        start_date=pendulum.datetime(2023, 1, 1, tz="UTC"),
+        start_date=pendulum.datetime(2025, 1, 1, tz="UTC"),
         catchup=False,
         schedule=None,  # 或者 "0 2 * * *" 表示每天凌晨2点运行
         tags=["spark", "etl", "hive"],
