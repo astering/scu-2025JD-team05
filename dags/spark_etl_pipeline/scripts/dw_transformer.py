@@ -102,11 +102,22 @@ if __name__ == "__main__":
 
         # 3. 应用业务转换逻辑
         # 使用 from_json 将 json_body 列解析成一个名为 'parsed_json' 的 struct 列
-        # 使用 select 和 ".*" 语法将 struct 中的所有字段直接展开为顶级列
         print("Applying transformation logic...")
 
-        dw_df = (ods_df.withColumn("parsed_json", from_json(col("json_body"), music_schema))
-                 .select("parsed_json.*"))
+        # 先解析
+        parsed_df = ods_df.withColumn("parsed_json", from_json(col("json_body"), music_schema))
+
+        # 获取所有字段名，将斜杠替换为下划线
+        old_fields = parsed_df.select("parsed_json.*").schema.names
+        new_fields = [f.replace("/", "_") for f in old_fields]
+
+        # 构造 select 语句，重命名所有字段
+        select_exprs = [
+            f"parsed_json.`{old}` as `{new}`" if old != new else f"parsed_json.`{old}`"
+            for old, new in zip(old_fields, new_fields)
+        ]
+
+        dw_df = parsed_df.selectExpr(*select_exprs)
 
         # 4. 数据清洗与处理
         # 自己完成
@@ -119,6 +130,7 @@ if __name__ == "__main__":
         print(f"Database '{db_name}' ensured to exist.")
 
         # 6. 创建 Hive 表（如果不存在）
+        # 下面sql表内容不重要，会被覆写
         create_table_sql = f"""
                 CREATE TABLE IF NOT EXISTS {dw_table_name} (
                     business_id      string,
