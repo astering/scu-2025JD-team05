@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>听歌时长排行与跳过率统计</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <style>
+    body { font-family: "微软雅黑", sans-serif; background-color: #f4f6f8; margin: 0; }
+    header { background-color: #e67e22; color: white; padding: 16px 24px; font-size: 20px; }
+    .container { padding: 24px; }
+    .chart-container { background: #fff; padding: 20px; margin-bottom: 24px; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
+    .controls { padding: 0 0 16px 0; }
+    .controls button { padding: 8px 16px; border: none; border-radius: 6px; background-color: #e67e22; color: white; cursor: pointer; }
+    #durationChart, #skipChart, #trendChart { width: 100%; height: 400px; }
+  </style>
+</head>
+<body>
+  <header>听歌时长排行与跳过率统计</header>
+  <div class="container">
+    <div class="chart-container">
+      <h3>Top10 听歌时长排行</h3>
+      <div id="durationChart"></div>
+    </div>
+    <div class="chart-container">
+      <h3>跳过最多的歌曲统计</h3>
+      <div id="skipChart"></div>
+    </div>
+    <div class="chart-container">
+      <h3>日均听歌时长变化趋势</h3>
+      <div class="controls">
+        <button onclick="renderTrend('7')">近7日</button>
+        <button onclick="renderTrend('30')">近30日</button>
+        <button onclick="renderTrend('365')">全年</button>
+      </div>
+      <div id="trendChart"></div>
+    </div>
+  </div>
+
+  <script>
+    const durationData = [
+      { name: '稻香', minutes: 320 },
+      { name: '晴天', minutes: 300 },
+      { name: '光年之外', minutes: 280 },
+      { name: '演员', minutes: 250 },
+      { name: '泡沫', minutes: 230 },
+      { name: '江南', minutes: 220 },
+      { name: '修炼爱情', minutes: 210 },
+      { name: '暧昧', minutes: 200 },
+      { name: '她说', minutes: 190 },
+      { name: '丑八怪', minutes: 180 }
+    ];
+
+    const skipData = [
+      { name: '童话镇', skips: 45 },
+      { name: '最炫民族风', skips: 42 },
+      { name: '小苹果', skips: 40 },
+      { name: '爱情买卖', skips: 38 },
+      { name: '忐忑', skips: 36 }
+    ];
+
+    function renderDurationChart() {
+      const chart = echarts.init(document.getElementById('durationChart'));
+      chart.setOption({
+        tooltip: { trigger: 'axis' },
+        xAxis: { type: 'category', data: durationData.map(d => d.name) },
+        yAxis: { type: 'value', name: '累计分钟数' },
+        series: [{
+          name: '累计听歌时长',
+          type: 'bar',
+          data: durationData.map(d => d.minutes),
+          itemStyle: { color: '#e67e22' }
+        }]
+      });
+    }
+
+    function renderSkipChart() {
+      const chart = echarts.init(document.getElementById('skipChart'));
+      chart.setOption({
+        tooltip: { trigger: 'item' },
+        series: [{
+          name: '跳过次数',
+          type: 'pie',
+          radius: '60%',
+          label: { formatter: '{b}: {c}次 ({d}%)' },
+          data: skipData.map(d => ({ name: d.name, value: d.skips }))
+        }]
+      });
+    }
+
+    function renderTrend(days) {
+      const chart = echarts.init(document.getElementById('trendChart'));
+      const labels = Array.from({ length: days }, (_, i) => `第${i + 1}天`);
+      const values = Array.from({ length: days }, () => Math.floor(Math.random() * 100 + 50));
+      chart.setOption({
+        tooltip: { trigger: 'axis' },
+        xAxis: { type: 'category', data: labels },
+        yAxis: { type: 'value', name: '分钟' },
+        series: [{
+          name: '日均听歌时长',
+          type: 'line',
+          data: values,
+          smooth: true,
+          areaStyle: { color: '#f3d8c3' },
+          lineStyle: { color: '#e67e22' }
+        }]
+      });
+    }
+
+    renderDurationChart();
+    renderSkipChart();
+    renderTrend('7');
+  </script>
+</body>
+</html>
