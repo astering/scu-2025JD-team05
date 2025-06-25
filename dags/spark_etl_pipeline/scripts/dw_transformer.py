@@ -27,19 +27,6 @@ if __name__ == "__main__":
         print(f"Successfully read data from ODS table: {ods_table_name}")
 
         music_schema = StructType([
-            StructField("analysis/bars_confidence", ArrayType(DoubleType()), True),
-            StructField("analysis/bars_start", ArrayType(DoubleType()), True),
-            StructField("analysis/beats_confidence", ArrayType(DoubleType()), True),
-            StructField("analysis/beats_start", ArrayType(DoubleType()), True),
-            StructField("analysis/sections_confidence", ArrayType(DoubleType()), True),
-            StructField("analysis/sections_start", ArrayType(DoubleType()), True),
-            StructField("analysis/segments_confidence", ArrayType(DoubleType()), True),
-            StructField("analysis/segments_loudness_max", ArrayType(DoubleType()), True),
-            StructField("analysis/segments_loudness_max_time", ArrayType(DoubleType()), True),
-            StructField("analysis/segments_loudness_start", ArrayType(DoubleType()), True),
-            StructField("analysis/segments_pitches", ArrayType(ArrayType(DoubleType())), True),
-            StructField("analysis/segments_start", ArrayType(DoubleType()), True),
-            StructField("analysis/segments_timbre", ArrayType(ArrayType(DoubleType())), True),
             StructField("analysis/songs", ArrayType(
                 StructType([
                     StructField("analysis_sample_rate", IntegerType(), True),
