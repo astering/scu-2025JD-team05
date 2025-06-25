@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/resolve" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/resolve/.editorconfig" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/resolve/.eslintrc" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/resolve/.github" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/resolve/LICENSE" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/resolve/SECURITY.md" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/resolve/async.js" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/resolve/bin" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/resolve/example" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/resolve/index.js" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/resolve/lib" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/resolve/package.json" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/resolve/readme.markdown" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/resolve/sync.js" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/resolve/test" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/speakingurl/.jsbeautifyrc" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/speakingurl/.jshintignore" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/speakingurl/component.json" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/speakingurl/speakingurl-rails.gemspec" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/untitled4/node_modules/speakingurl/speakingurl.min.js" charset="GBK" />
+  </component>
+</project>
