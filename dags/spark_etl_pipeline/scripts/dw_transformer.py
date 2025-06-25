@@ -3,6 +3,7 @@ import sys
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, from_json
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType, BooleanType
+from pyspark.sql.types import MapType, ArrayType
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
@@ -25,21 +26,93 @@ if __name__ == "__main__":
         ods_df = spark.table(ods_table_name)
         print(f"Successfully read data from ODS table: {ods_table_name}")
 
-        business_schema = StructType([
-            StructField("business_id", StringType(), True),
-            StructField("name", StringType(), True),
-            StructField("address", StringType(), True),
-            StructField("city", StringType(), True),
-            StructField("state", StringType(), True),
-            StructField("postal_code", StringType(), True),
-            StructField("latitude", DoubleType(), True),
-            StructField("longitude", DoubleType(), True),
-            StructField("stars", DoubleType(), True),
-            StructField("review_count", IntegerType(), True),
-            StructField("is_open", BooleanType(), True),
-            StructField("attributes", StringType(), True),  # 简化处理
-            StructField("categories", StringType(), True),  # 简化处理
-            StructField("hours", StringType(), True)  # 简化处理
+        music_schema = StructType([
+            StructField("analysis/bars_confidence", ArrayType(DoubleType()), True),
+            StructField("analysis/bars_start", ArrayType(DoubleType()), True),
+            StructField("analysis/beats_confidence", ArrayType(DoubleType()), True),
+            StructField("analysis/beats_start", ArrayType(DoubleType()), True),
+            StructField("analysis/sections_confidence", ArrayType(DoubleType()), True),
+            StructField("analysis/sections_start", ArrayType(DoubleType()), True),
+            StructField("analysis/segments_confidence", ArrayType(DoubleType()), True),
+            StructField("analysis/segments_loudness_max", ArrayType(DoubleType()), True),
+            StructField("analysis/segments_loudness_max_time", ArrayType(DoubleType()), True),
+            StructField("analysis/segments_loudness_start", ArrayType(DoubleType()), True),
+            StructField("analysis/segments_pitches", ArrayType(ArrayType(DoubleType())), True),
+            StructField("analysis/segments_start", ArrayType(DoubleType()), True),
+            StructField("analysis/segments_timbre", ArrayType(ArrayType(DoubleType())), True),
+            StructField("analysis/songs", ArrayType(
+                StructType([
+                    StructField("analysis_sample_rate", IntegerType(), True),
+                    StructField("audio_md5", StringType(), True),
+                    StructField("danceability", DoubleType(), True),
+                    StructField("duration", DoubleType(), True),
+                    StructField("end_of_fade_in", DoubleType(), True),
+                    StructField("energy", DoubleType(), True),
+                    StructField("idx_bars_confidence", IntegerType(), True),
+                    StructField("idx_bars_start", IntegerType(), True),
+                    StructField("idx_beats_confidence", IntegerType(), True),
+                    StructField("idx_beats_start", IntegerType(), True),
+                    StructField("idx_sections_confidence", IntegerType(), True),
+                    StructField("idx_sections_start", IntegerType(), True),
+                    StructField("idx_segments_confidence", IntegerType(), True),
+                    StructField("idx_segments_loudness_max", IntegerType(), True),
+                    StructField("idx_segments_loudness_max_time", IntegerType(), True),
+                    StructField("idx_segments_loudness_start", IntegerType(), True),
+                    StructField("idx_segments_pitches", IntegerType(), True),
+                    StructField("idx_segments_start", IntegerType(), True),
+                    StructField("idx_segments_timbre", IntegerType(), True),
+                    StructField("idx_tatums_confidence", IntegerType(), True),
+                    StructField("idx_tatums_start", IntegerType(), True),
+                    StructField("key", IntegerType(), True),
+                    StructField("key_confidence", DoubleType(), True),
+                    StructField("loudness", DoubleType(), True),
+                    StructField("mode", IntegerType(), True),
+                    StructField("mode_confidence", DoubleType(), True),
+                    StructField("start_of_fade_out", DoubleType(), True),
+                    StructField("tempo", DoubleType(), True),
+                    StructField("time_signature", IntegerType(), True),
+                    StructField("time_signature_confidence", DoubleType(), True),
+                    StructField("track_id", StringType(), True)
+                ])
+            ), True),
+            StructField("analysis/tatums_confidence", ArrayType(DoubleType()), True),
+            StructField("analysis/tatums_start", ArrayType(DoubleType()), True),
+            StructField("metadata/artist_terms", ArrayType(StringType()), True),
+            StructField("metadata/artist_terms_freq", ArrayType(DoubleType()), True),
+            StructField("metadata/artist_terms_weight", ArrayType(DoubleType()), True),
+            StructField("metadata/similar_artists", ArrayType(StringType()), True),
+            StructField("metadata/songs", ArrayType(
+                StructType([
+                    StructField("analyzer_version", StringType(), True),
+                    StructField("artist_7digitalid", IntegerType(), True),
+                    StructField("artist_familiarity", DoubleType(), True),
+                    StructField("artist_hotttnesss", DoubleType(), True),
+                    StructField("artist_id", StringType(), True),
+                    StructField("artist_latitude", DoubleType(), True),
+                    StructField("artist_location", StringType(), True),
+                    StructField("artist_longitude", DoubleType(), True),
+                    StructField("artist_mbid", StringType(), True),
+                    StructField("artist_name", StringType(), True),
+                    StructField("artist_playmeid", IntegerType(), True),
+                    StructField("genre", StringType(), True),
+                    StructField("idx_artist_terms", IntegerType(), True),
+                    StructField("idx_similar_artists", IntegerType(), True),
+                    StructField("release", StringType(), True),
+                    StructField("release_7digitalid", IntegerType(), True),
+                    StructField("song_hotttnesss", DoubleType(), True),
+                    StructField("song_id", StringType(), True),
+                    StructField("title", StringType(), True),
+                    StructField("track_7digitalid", IntegerType(), True)
+                ])
+            ), True),
+            StructField("musicbrainz/artist_mbtags", ArrayType(StringType()), True),
+            StructField("musicbrainz/artist_mbtags_count", ArrayType(IntegerType()), True),
+            StructField("musicbrainz/songs", ArrayType(
+                StructType([
+                    StructField("idx_artist_mbtags", IntegerType(), True),
+                    StructField("year", IntegerType(), True)
+                ])
+            ), True)
         ])
 
         # 3. 应用业务转换逻辑
@@ -47,7 +120,7 @@ if __name__ == "__main__":
         # 使用 select 和 ".*" 语法将 struct 中的所有字段直接展开为顶级列
         print("Applying transformation logic...")
 
-        dw_df = (ods_df.withColumn("parsed_json", from_json(col("json_body"), business_schema))
+        dw_df = (ods_df.withColumn("parsed_json", from_json(col("json_body"), music_schema))
                  .select("parsed_json.*"))
 
         # 4. 数据清洗与处理
