@@ -62,8 +62,6 @@ if __name__ == "__main__":
                     StructField("track_id", StringType(), True)
                 ])
             ), True),
-            StructField("analysis/tatums_confidence", ArrayType(DoubleType()), True),
-            StructField("analysis/tatums_start", ArrayType(DoubleType()), True),
             StructField("metadata/artist_terms", ArrayType(StringType()), True),
             StructField("metadata/artist_terms_freq", ArrayType(DoubleType()), True),
             StructField("metadata/artist_terms_weight", ArrayType(DoubleType()), True),
