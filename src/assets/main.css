@@ -1,0 +1,61 @@
+@import './base.css';
+
+html, body, #app {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  font-weight: normal;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #e0e7ff;
+  font-family: 'Inter', sans-serif;
+  /* 取消 body 的 flex 布局，避免内容只占一半 */
+}
+
+/*
+@media (min-width: 1024px) {
+  body {
+    display: flex;
+    place-items: center;
+  }
+
+  #app {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 0 2rem;
+  }
+}
+*/
+
+/* 改为不设置布局，让内容默认撑满宽度 */
+@media (min-width: 1024px) {
+  body {
+    display: block; /* 默认块布局 */
+    place-items: normal;
+  }
+
+  #app {
+    display: block;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem;
+    box-sizing: border-box;
+  }
+}
+
+/* 你的基础链接和绿色样式 */
+a,
+.green {
+  text-decoration: none;
+  color: hsla(160, 100%, 37%, 1);
+  transition: 0.4s;
+  padding: 3px;
+}
+
+@media (hover: hover) {
+  a:hover {
+    background-color: hsla(160, 100%, 37%, 0.2);
+  }
+}
+
+/* 你其他的样式保持不变 */
