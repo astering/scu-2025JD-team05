@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>用户画像分析</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <style>
+    body { font-family: "微软雅黑", sans-serif; background-color: #f4f6f8; margin: 0; }
+    header { background-color: #16a085; color: white; padding: 16px 24px; font-size: 20px; }
+    .container { padding: 24px; }
+    .chart-container { background: #fff; padding: 20px; margin-bottom: 24px; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
+    #styleRadar, #heatmap, #topReplay, #collectStats, #devicePie { width: 100%; height: 400px; }
+  </style>
+</head>
+<body>
+  <header>🎧 你是一个“多情诗人型”听众</header>
+  <div class="container">
+
+    <div class="chart-container">
+      <h3>偏好音乐风格雷达图</h3>
+      <div id="styleRadar"></div>
+    </div>
+
+    <div class="chart-container">
+      <h3>听歌活跃时间段热力图</h3>
+      <div id="heatmap"></div>
+    </div>
+
+    <div class="chart-container">
+      <h3>重听Top10 歌手/歌曲</h3>
+      <div id="topReplay"></div>
+    </div>
+
+    <div class="chart-container">
+      <h3>收藏行为统计</h3>
+      <div id="collectStats"></div>
+    </div>
+
+    <div class="chart-container">
+      <h3>播放设备使用比例</h3>
+      <div id="devicePie"></div>
+    </div>
+
+  </div>
+  <script>
+    const radarChart = echarts.init(document.getElementById('styleRadar'));
+    radarChart.setOption({
+      tooltip: {},
+      radar: {
+        indicator: [
+          { name: '流行', max: 100 },
+          { name: '电子', max: 100 },
+          { name: '说唱', max: 100 },
+          { name: '民谣', max: 100 },
+          { name: '摇滚', max: 100 },
+          { name: '古典', max: 100 }
+        ]
+      },
+      series: [{
+        type: 'radar',
+        data: [{
+          value: [90, 70, 50, 40, 30, 20],
+          name: '播放偏好分布'
+        }]
+      }]
+    });
+
+    const heatmap = echarts.init(document.getElementById('heatmap'));
+    const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+    const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const data = [];
+    for (let i = 0; i < 7; i++) {
+      for (let j = 0; j < 24; j++) {
+        data.push([j, i, Math.floor(Math.random() * 100)]);
+      }
+    }
+    heatmap.setOption({
+      tooltip: {},
+      xAxis: { type: 'category', data: hours },
+      yAxis: { type: 'category', data: days },
+      visualMap: {
+        min: 0,
+        max: 100,
+        calculable: true,
+        orient: 'horizontal',
+        left: 'center',
+        bottom: '5%'
+      },
+      series: [{
+        type: 'heatmap',
+        data: data,
+        label: { show: false },
+        emphasis: { itemStyle: { shadowBlur: 10, shadowColor: '#333' } }
+      }]
+    });
+
+    const replayChart = echarts.init(document.getElementById('topReplay'));
+    const replayData = [
+      { name: '周杰伦', value: 98 },
+      { name: '五月天', value: 90 },
+      { name: '林俊杰', value: 85 },
+      { name: 'Taylor Swift', value: 75 },
+      { name: '王菲', value: 70 },
+      { name: 'Adele', value: 65 },
+      { name: '李荣浩', value: 60 },
+      { name: '孙燕姿', value: 58 },
+      { name: '张学友', value: 55 },
+      { name: '陈奕迅', value: 50 }
+    ];
+    replayChart.setOption({
+      tooltip: {},
+      xAxis: { type: 'category', data: replayData.map(d => d.name) },
+      yAxis: { type: 'value', name: '重听次数' },
+      series: [{
+        type: 'bar',
+        data: replayData.map(d => d.value),
+        itemStyle: { color: '#16a085' }
+      }]
+    });
+
+    const collectStats = echarts.init(document.getElementById('collectStats'));
+    collectStats.setOption({
+      tooltip: {},
+      series: [{
+        type: 'gauge',
+        startAngle: 180,
+        endAngle: 0,
+        radius: '90%',
+        center: ['50%', '75%'],
+        pointer: { show: true },
+        progress: { show: true, width: 18 },
+        axisLine: { lineStyle: { width: 18 } },
+        axisTick: { show: false },
+        splitLine: { show: false },
+        axisLabel: { show: false },
+        title: { show: true, offsetCenter: [0, '-20%'], fontSize: 16, color: '#333' },
+        detail: { valueAnimation: true, fontSize: 20, offsetCenter: [0, '20%'] },
+        data: [{ value: 78, name: '收藏活跃度' }]
+      }]
+    });
+
+    const devicePie = echarts.init(document.getElementById('devicePie'));
+    devicePie.setOption({
+      tooltip: { trigger: 'item' },
+      series: [{
+        type: 'pie',
+        radius: '60%',
+        data: [
+          { name: '手机', value: 60 },
+          { name: '网页端', value: 25 },
+          { name: '智能音响', value: 15 }
+        ],
+        label: { formatter: '{b}: {c} ({d}%)' }
+      }]
+    });
+  </script>
+</body>
+</html>

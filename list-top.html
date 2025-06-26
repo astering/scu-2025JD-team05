@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>年度排行榜展示</title>
+  <style>
+    body { font-family: "微软雅黑", sans-serif; background-color: #f4f6f8; margin: 0; }
+    header { background-color: #4a90e2; color: white; padding: 16px 24px; font-size: 20px; }
+    .controls { background: #fff; padding: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+    select, input[type="text"] { padding: 8px; border-radius: 6px; margin-right: 12px; }
+    .container { padding: 24px; }
+    .section { margin-bottom: 32px; background: #fff; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); padding: 20px; }
+    .section h2 { margin-top: 0; }
+    .singer-card, .song-card { display: flex; align-items: center; margin-bottom: 12px; padding: 12px; border-radius: 8px; color: white; }
+    .singer-card .info, .song-card .info { display: flex; flex-direction: column; }
+    .singer-card { background: linear-gradient(45deg, #7b4397, #dc2430); }
+    .song-card { background: linear-gradient(45deg, #11998e, #38ef7d); cursor: pointer; transition: 0.3s; }
+    .song-card:hover { box-shadow: 0 0 6px rgba(0,0,0,0.15); }
+    .song-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+    .tooltip { display: none; position: absolute; background: #333; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>年度排行榜展示</header>
+  <div class="controls">
+    <label>年份：<select id="year">
+      <option>2024</option><option>2023</option><option selected>2022</option>
+    </select></label>
+    <label>搜索：<input type="text" id="search" placeholder="请输入歌手或歌曲名"></label>
+  </div>
+
+  <div class="container">
+    <div class="section" id="top10-singers">
+      <h2>Top10 歌手</h2>
+      <div id="singer-list"></div>
+    </div>
+    <div class="section" id="top50-songs">
+      <h2>Top50 热门歌曲</h2>
+      <div class="song-grid" id="song-list"></div>
+    </div>
+  </div>
+
+  <div class="tooltip" id="tooltip"></div>
+
+  <script>
+    const singers = [
+      { name: '周杰伦', plays: 5000000, songs: 20 },
+      { name: '林俊杰', plays: 4300000, songs: 18 },
+      { name: '邓紫棋', plays: 4200000, songs: 15 },
+      { name: '薛之谦', plays: 3900000, songs: 12 },
+      { name: '五月天', plays: 3800000, songs: 13 },
+      { name: 'Taylor Swift', plays: 3700000, songs: 22 },
+      { name: 'Adele', plays: 3600000, songs: 11 },
+      { name: '李荣浩', plays: 3500000, songs: 10 },
+      { name: '张学友', plays: 3400000, songs: 9 },
+      { name: 'BLACKPINK', plays: 3300000, songs: 7 }
+    ];
+
+    const songs = Array.from({ length: 50 }, (_, i) => ({
+      id: i + 1,
+      title: `热门歌曲 ${i + 1}`,
+      artist: singers[i % 10].name,
+      plays: Math.floor(300000 + Math.random() * 1000000),
+      favorites: Math.floor(10000 + Math.random() * 30000),
+      growth: `${(Math.random() * 20 - 10).toFixed(1)}%`
+    }));
+
+    const singerList = document.getElementById('singer-list');
+    singers.forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'singer-card';
+      div.innerHTML = `<div class="info"><strong>${s.name}</strong><span>播放量：${s.plays}</span><span>作品数：${s.songs}</span></div>`;
+      singerList.appendChild(div);
+    });
+
+    const songList = document.getElementById('song-list');
+    const tooltip = document.getElementById('tooltip');
+    function renderSongs(filter = '') {
+      songList.innerHTML = '';
+      songs.filter(s => s.title.includes(filter) || s.artist.includes(filter)).forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'song-card';
+        div.innerHTML = `<div class="info"><strong>${s.title}</strong><span>${s.artist}</span><span>播放：${s.plays}</span><span>收藏：${s.favorites}</span></div>`;
+        div.addEventListener('mouseover', e => {
+          tooltip.innerText = `环比增长：${s.growth}`;
+          tooltip.style.display = 'block';
+          tooltip.style.top = e.pageY + 'px';
+          tooltip.style.left = (e.pageX + 10) + 'px';
+        });
+        div.addEventListener('mouseout', () => tooltip.style.display = 'none');
+        songList.appendChild(div);
+      });
+    }
+
+    renderSongs();
+    document.getElementById('search').addEventListener('input', e => renderSongs(e.target.value));
+  </script>
+</body>
+</html>

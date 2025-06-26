@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>热门歌手播放量分布</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <style>
+    body { font-family: "微软雅黑", sans-serif; background-color: #f4f6f8; margin: 0; }
+    header { background-color: #4a90e2; color: white; padding: 16px 24px; font-size: 20px; }
+    .controls { background: #fff; padding: 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    select, input[type="text"] { padding: 8px; border-radius: 6px; }
+    .container { padding: 24px; }
+    .chart-container { background: #fff; padding: 20px; margin-bottom: 24px; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
+    #barChart, #songPie, #trendChart { width: 100%; height: 400px; }
+  </style>
+</head>
+<body>
+  <header>热门歌手播放量分布</header>
+  <div class="controls">
+    <label>年份：<select id="year"><option>2024</option><option>2023</option><option selected>2022</option></select></label>
+    <label>用户类型：<select id="userType"><option>全部用户</option><option>90后</option><option>00后</option><option>华东地区</option></select></label>
+    <label>搜索歌手：<input type="text" id="searchInput" placeholder="输入歌手名"></label>
+  </div>
+
+  <div class="container">
+    <div class="chart-container">
+      <h3>Top10 歌手播放量总览</h3>
+      <div id="barChart"></div>
+    </div>
+    <div class="chart-container">
+      <h3>歌手热门曲目播放量分布</h3>
+      <div id="songPie"></div>
+    </div>
+    <div class="chart-container">
+      <h3>播放趋势变化（季度）</h3>
+      <div id="trendChart"></div>
+    </div>
+  </div>
+
+  <script>
+    const singers = [
+      { name: '周杰伦', plays: 5000000, songs: [
+        { title: '晴天', plays: 1800000 },
+        { title: '稻香', plays: 1700000 },
+        { title: '告白气球', plays: 1500000 }
+      ] },
+      { name: '林俊杰', plays: 4300000, songs: [
+        { title: '江南', plays: 2000000 },
+        { title: '修炼爱情', plays: 1500000 },
+        { title: '她说', plays: 800000 }
+      ] },
+      { name: '邓紫棋', plays: 4200000, songs: [
+        { title: '光年之外', plays: 2200000 },
+        { title: '泡沫', plays: 1200000 },
+        { title: '来自天堂的魔鬼', plays: 800000 }
+      ] },
+      { name: '薛之谦', plays: 3900000, songs: [
+        { title: '演员', plays: 1800000 },
+        { title: '丑八怪', plays: 1300000 },
+        { title: '暧昧', plays: 800000 }
+      ] }
+    ];
+
+    const barChart = echarts.init(document.getElementById('barChart'));
+    const pieChart = echarts.init(document.getElementById('songPie'));
+    const trendChart = echarts.init(document.getElementById('trendChart'));
+
+    function renderBar(data) {
+      barChart.setOption({
+        xAxis: { type: 'category', data: data.map(s => s.name) },
+        yAxis: { type: 'value' },
+        tooltip: { trigger: 'axis' },
+        series: [{
+          name: '播放量',
+          type: 'bar',
+          data: data.map(s => s.plays),
+          itemStyle: { color: '#4a90e2' }
+        }]
+      });
+    }
+
+    function renderPie(singer) {
+      pieChart.setOption({
+        title: { text: `${singer.name} 热门歌曲播放分布`, left: 'center' },
+        tooltip: { trigger: 'item' },
+        series: [{
+          type: 'pie',
+          radius: '60%',
+          label: { formatter: '{b}: {d}%' },
+          data: singer.songs.map(song => ({ name: song.title, value: song.plays }))
+        }]
+      });
+    }
+
+    function renderTrend() {
+      trendChart.setOption({
+        tooltip: { trigger: 'axis' },
+        legend: { data: singers.map(s => s.name) },
+        xAxis: { type: 'category', data: ['Q1', 'Q2', 'Q3', 'Q4'] },
+        yAxis: { type: 'value' },
+        series: singers.map(s => ({
+          name: s.name,
+          type: 'line',
+          data: Array.from({ length: 4 }, () => Math.floor(Math.random() * 1200000 + 1000000))
+        }))
+      });
+    }
+
+    document.getElementById('searchInput').addEventListener('input', e => {
+      const name = e.target.value.trim();
+      const match = singers.find(s => s.name.includes(name));
+      if (match) renderPie(match);
+    });
+
+    renderBar(singers);
+    renderPie(singers[0]);
+    renderTrend();
+  </script>
+</body>
+</html>
