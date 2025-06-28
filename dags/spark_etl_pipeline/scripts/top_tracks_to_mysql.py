@@ -5,7 +5,7 @@ from pyspark.sql.types import StructType, StructField, StringType, IntegerType, 
 from pyspark.sql.window import Window
 
 if __name__ == "__main__":
-    if len(sys.argv) != 7:
+    if len(sys.argv) != 9:
         print("""
         Usage: top_tracks_to_mysql.py <track_path> <person_path> <album_path> <mysql_url> <mysql_user> <mysql_password> <mysql_driver> <target_table>
         """, file=sys.stderr)
@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     spark = SparkSession.builder.appName("TopTracksETL").getOrCreate()
 
-    # 1. ∂®“ÂΩ·ππ
+    # 1. ÂÆö‰πâÁªìÊûÑ
     track_schema = StructType([
         StructField("event_type", StringType(), True),
         StructField("track_id", LongType(), True),
@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     album_schema = person_schema
 
-    # 2. ∂¡»° track.idomaar
+    # 2. ËØªÂèñ track.idomaar
     track_raw = spark.read.option("delimiter", "\t").schema(track_schema).csv(track_path)
     track_df = track_raw \
         .withColumn("payload_json", from_json(col("payload"), json_payload_schema)) \
@@ -75,11 +75,11 @@ if __name__ == "__main__":
             col("meta_json.albums")[0]["id"].alias("album_id")
         )
 
-    # 3. «∞100
+    # 3. Ââç100
     window_spec = Window.orderBy(col("playcount").desc())
     top_tracks = track_df.withColumn("rank", row_number().over(window_spec)).filter("rank <= 100").drop("rank")
 
-    # 4. ∂¡»° person ∫Õ album ”≥…‰
+    # 4. ËØªÂèñ person Âíå album Êò†Â∞Ñ
     def extract_name(df, id_col="id"):
         return df.withColumn("payload_json", from_json(col("payload"), StructType([
             StructField("MBID", StringType(), True),
@@ -95,14 +95,14 @@ if __name__ == "__main__":
     person_df = extract_name(person_raw, "id").withColumnRenamed("name", "artist_name")
     album_df = extract_name(album_raw, "id").withColumnRenamed("name", "album_name")
 
-    # 5. join »˝±Ì
+    # 5. join ‰∏âË°®
     final_df = top_tracks \
         .join(person_df, top_tracks.artist_id == person_df.id, how="left") \
         .drop(person_df.id) \
         .join(album_df, top_tracks.album_id == album_df.id, how="left") \
         .drop(album_df.id)
 
-    # √˜»∑¿‡–Õ
+    # ÊòéÁ°ÆÁ±ªÂûã
     final_df = final_df.selectExpr(
         "cast(track_id as BIGINT)",
         "cast(duration as BIGINT)",
@@ -115,7 +115,7 @@ if __name__ == "__main__":
         "cast(album_name as STRING)"
     )
 
-    # 6. –¥»Î MySQL
+    # 6. ÂÜôÂÖ• MySQL
     final_df.write \
         .format("jdbc") \
         .option("url", mysql_url) \
@@ -128,3 +128,4 @@ if __name__ == "__main__":
 
     print("Top tracks successfully written to MySQL.")
     spark.stop()
+    print("Process finished successfully.")
