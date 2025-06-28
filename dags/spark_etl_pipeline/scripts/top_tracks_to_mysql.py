@@ -1,71 +1,64 @@
 import sys
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, row_number, from_json, expr, explode
+from pyspark.sql.functions import col, from_json, desc, explode, coalesce, lit
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, ArrayType, LongType
-from pyspark.sql.window import Window
 
 if __name__ == "__main__":
     if len(sys.argv) != 7:
         print("""
-        Usage: top_tracks_to_mysql.py <track_path> <person_path> <album_path> <mysql_url> <mysql_user> <mysql_password> <mysql_driver> <target_table>
+        Usage: top_tracks_to_mysql.py <track_file> <persons_file> <albums_file>
+                                       <mysql_url> <mysql_user> <mysql_password>
+                                       <mysql_driver> <mysql_target_table>
         """, file=sys.stderr)
         sys.exit(-1)
 
     track_path = sys.argv[1]
-    person_path = sys.argv[2]
-    album_path = sys.argv[3]
+    persons_path = sys.argv[2]
+    albums_path = sys.argv[3]
     mysql_url = sys.argv[4]
     mysql_user = sys.argv[5]
     mysql_password = sys.argv[6]
     mysql_driver = sys.argv[7]
-    target_table = sys.argv[8]
+    mysql_target_table = sys.argv[8]
 
-    spark = SparkSession.builder.appName("TopTracksETL").getOrCreate()
+    spark = SparkSession.builder \
+        .appName("Top Tracks ETL to MySQL") \
+        .enableHiveSupport() \
+        .getOrCreate()
 
-    # 1. ����ṹ
-    track_schema = StructType([
-        StructField("event_type", StringType(), True),
-        StructField("track_id", LongType(), True),
-        StructField("ignore", IntegerType(), True),
-        StructField("payload", StringType(), True),
-        StructField("meta", StringType(), True)
-    ])
+    try:
+        # ============ Step 1: 读取 Track 数据 =============
+        track_schema = StructType([
+            StructField("duration", LongType(), True),
+            StructField("playcount", IntegerType(), True),
+            StructField("MBID", StringType(), True),
+            StructField("name", StringType(), True)
+        ])
 
-    json_payload_schema = StructType([
-        StructField("duration", LongType(), True),
-        StructField("playcount", LongType(), True),
-        StructField("MBID", StringType(), True),
-        StructField("name", StringType(), True)
-    ])
+        track_df = (
+            spark.read.option("delimiter", "\t").text(track_path)
+            .withColumnRenamed("value", "raw")
+            .filter(col("raw").startswith("track"))
+        )
 
-    json_meta_schema = StructType([
-        StructField("artists", ArrayType(StructType([
-            StructField("id", LongType(), True),
-            StructField("type", StringType(), True)
-        ]))),
-        StructField("albums", ArrayType(StructType([
-            StructField("id", LongType(), True),
-            StructField("type", StringType(), True)
-        ]))),
-        StructField("tags", ArrayType(StringType()))
-    ])
+        # 拆分列：格式为 track \t track_id \t -1 \t json \t meta_json
+        track_df = track_df.selectExpr("split(raw, '\t') as parts") \
+            .select(
+                col("parts[1]").cast("long").alias("track_id"),
+                from_json(col("parts[3]"), track_schema).alias("payload_json"),
+                from_json(col("parts[4]"), StructType([
+                    StructField("artists", ArrayType(StructType([
+                        StructField("type", StringType(), True),
+                        StructField("id", LongType(), True)
+                    ]))),
+                    StructField("albums", ArrayType(StructType([
+                        StructField("type", StringType(), True),
+                        StructField("id", LongType(), True)
+                    ])))
+                ])).alias("meta_json")
+            )
 
-    person_schema = StructType([
-        StructField("event_type", StringType(), True),
-        StructField("id", LongType(), True),
-        StructField("ignore", IntegerType(), True),
-        StructField("payload", StringType(), True),
-        StructField("meta", StringType(), True)
-    ])
-
-    album_schema = person_schema
-
-    # 2. ��ȡ track.idomaar
-    track_raw = spark.read.option("delimiter", "\t").schema(track_schema).csv(track_path)
-    track_df = track_raw \
-        .withColumn("payload_json", from_json(col("payload"), json_payload_schema)) \
-        .withColumn("meta_json", from_json(col("meta"), json_meta_schema)) \
-        .select(
+        track_df = track_df.select(
             "track_id",
             col("payload_json.duration").alias("duration"),
             col("payload_json.playcount").alias("playcount"),
@@ -75,56 +68,89 @@ if __name__ == "__main__":
             col("meta_json.albums")[0]["id"].alias("album_id")
         )
 
-    # 3. ǰ100
-    window_spec = Window.orderBy(col("playcount").desc())
-    top_tracks = track_df.withColumn("rank", row_number().over(window_spec)).filter("rank <= 100").drop("rank")
-
-    # 4. ��ȡ person �� album ӳ��
-    def extract_name(df, id_col="id"):
-        return df.withColumn("payload_json", from_json(col("payload"), StructType([
-            StructField("MBID", StringType(), True),
-            StructField("name", StringType(), True)
-        ]))).select(
-            col(id_col),
-            col("payload_json.name").alias("name")
+        # ============ Step 2: 读取 persons.idomaar（艺人信息） ============
+        persons_df = (
+            spark.read.option("delimiter", "\t").text(persons_path)
+            .withColumnRenamed("value", "raw")
+            .filter(col("raw").startswith("person"))
         )
 
-    person_raw = spark.read.option("delimiter", "\t").schema(person_schema).csv(person_path)
-    album_raw = spark.read.option("delimiter", "\t").schema(album_schema).csv(album_path)
+        persons_df = persons_df.selectExpr("split(raw, '\t') as parts") \
+            .select(
+                col("parts[1]").cast("long").alias("artist_id"),
+                from_json(col("parts[3]"), StructType([
+                    StructField("name", StringType(), True)
+                ])).alias("payload_json")
+            )
 
-    person_df = extract_name(person_raw, "id").withColumnRenamed("name", "artist_name")
-    album_df = extract_name(album_raw, "id").withColumnRenamed("name", "album_name")
+        persons_df = persons_df.select(
+            "artist_id",
+            col("payload_json.name").alias("artist_name")
+        )
 
-    # 5. join ����
-    final_df = top_tracks \
-        .join(person_df, top_tracks.artist_id == person_df.id, how="left") \
-        .drop(person_df.id) \
-        .join(album_df, top_tracks.album_id == album_df.id, how="left") \
-        .drop(album_df.id)
+        # ============ Step 3: 读取 albums.idomaar（专辑信息） ============
+        albums_df = (
+            spark.read.option("delimiter", "\t").text(albums_path)
+            .withColumnRenamed("value", "raw")
+            .filter(col("raw").startswith("album"))
+        )
 
-    # ��ȷ����
-    final_df = final_df.selectExpr(
-        "cast(track_id as BIGINT)",
-        "cast(duration as BIGINT)",
-        "cast(playcount as BIGINT)",
-        "cast(track_mbid as STRING)",
-        "cast(title as STRING)",
-        "cast(artist_id as BIGINT)",
-        "cast(artist_name as STRING)",
-        "cast(album_id as BIGINT)",
-        "cast(album_name as STRING)"
-    )
+        albums_df = albums_df.selectExpr("split(raw, '\t') as parts") \
+            .select(
+                col("parts[1]").cast("long").alias("album_id"),
+                from_json(col("parts[3]"), StructType([
+                    StructField("name", StringType(), True)
+                ])).alias("payload_json")
+            )
 
-    # 6. д�� MySQL
-    final_df.write \
-        .format("jdbc") \
-        .option("url", mysql_url) \
-        .option("dbtable", target_table) \
-        .option("user", mysql_user) \
-        .option("password", mysql_password) \
-        .option("driver", mysql_driver) \
-        .mode("overwrite") \
-        .save()
+        albums_df = albums_df.select(
+            "album_id",
+            col("payload_json.name").alias("album_name")
+        )
 
-    print("Top tracks successfully written to MySQL.")
+        # ============ Step 4: 合并信息并处理 null =============
+        final_df = track_df \
+            .join(persons_df, on="artist_id", how="left") \
+            .join(albums_df, on="album_id", how="left") \
+            .na.fill({
+                "track_mbid": "UNKNOWN",
+                "title": "UNKNOWN",
+                "artist_name": "UNKNOWN",
+                "album_name": "UNKNOWN"
+            })
+
+        final_df = final_df.selectExpr(
+            "cast(track_id as BIGINT)",
+            "cast(duration as BIGINT)",
+            "cast(playcount as BIGINT)",
+            "coalesce(track_mbid, 'UNKNOWN') as track_mbid",
+            "coalesce(title, 'UNKNOWN') as title",
+            "cast(artist_id as BIGINT)",
+            "coalesce(artist_name, 'UNKNOWN') as artist_name",
+            "cast(album_id as BIGINT)",
+            "coalesce(album_name, 'UNKNOWN') as album_name"
+        )
+
+        # ============ Step 5: 获取播放量前100条 ============
+        top100_df = final_df.orderBy(desc("playcount")).limit(100)
+
+        # ============ Step 6: 写入 MySQL ============
+        top100_df.write \
+            .format("jdbc") \
+            .option("url", mysql_url) \
+            .option("dbtable", mysql_target_table) \
+            .option("user", mysql_user) \
+            .option("password", mysql_password) \
+            .option("driver", mysql_driver) \
+            .mode("overwrite") \
+            .save()
+
+        print(" Successfully wrote top 100 tracks to MySQL.")
+
+    except Exception as e:
+        print(f" Error occurred: {e}", file=sys.stderr)
+        spark.stop()
+        sys.exit(1)
+
     spark.stop()
+    print(" Top Tracks ETL finished successfully.")
