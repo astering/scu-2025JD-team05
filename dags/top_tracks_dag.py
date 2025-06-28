@@ -7,9 +7,9 @@ from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOpe
 from airflow.hooks.base import BaseHook
 
 SPARK_SCRIPTS_PATH = "dags/spark_etl_pipeline/scripts"
-TRACK_PATH = "hdfs:///mir/idomaar/track.idomaar"
-PERSON_PATH = "hdfs:///mir/idomaar/persons.idomaar"
-ALBUM_PATH = "hdfs:///mir/idomaar/albums.idomaar"
+TRACK_PATH = "hdfs:///mir/ThirtyMusic/entities/tracks.idomaar"
+PERSON_PATH = "hdfs:///mir/ThirtyMusic/entities/persons.idomaar"
+ALBUM_PATH = "hdfs:///mir/ThirtyMusic/entities/albums.idomaar"
 
 MYSQL_CONN_ID = "mysql_ads_db2"
 MYSQL_TARGET_TABLE = "top_track"
