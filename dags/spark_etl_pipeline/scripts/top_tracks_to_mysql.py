@@ -133,7 +133,6 @@ if __name__ == "__main__":
 
         # ============ Step 5: 获取播放量前100条 ============
         top100_df = final_df.orderBy(desc("playcount")).limit(100)
-
         # ============ Step 6: 写入 MySQL ============
         top100_df.write \
             .format("jdbc") \
@@ -144,7 +143,6 @@ if __name__ == "__main__":
             .option("driver", mysql_driver) \
             .mode("overwrite") \
             .save()
-
         print(" Successfully wrote top 100 tracks to MySQL.")
 
     except Exception as e:
