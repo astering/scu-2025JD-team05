@@ -10,7 +10,7 @@ from airflow.hooks.base import BaseHook
 # --- 1. 定义常量和变量 ---
 # 确保这些路径对于 Airflow Worker 是可访问的
 # 如果脚本在 HDFS 上，使用 hdfs:///... 路径
-AIRFLOW_HOME = "airflow" # 必须在用户家目录下
+AIRFLOW_HOME = "airflow" # 必须在用户家目录下，前后不能有斜杠
 SPARK_SCRIPTS_PATH = AIRFLOW_HOME + "/dags/spark_etl_pipeline/scripts"
 # 或者干脆写成：SPARK_SCRIPTS_PATH = "airflow/dags/spark_etl_pipeline/scripts"
 
@@ -34,9 +34,11 @@ ODS_TABLE_FQN = f"{ODS_DB}.{ODS_TABLE}"  # FQN: Fully Qualified Name
 DW_TABLE_FQN = f"{DW_DB}.{DW_TABLE}"
 
 MYSQL_CONN_ID = "mysql_ads_db2"
-# MYSQL_TARGET_TABLE = "top_20_businesses"
-MYSQL_TARGET_TABLE = "sum_music"
 MYSQL_DRIVER = "com.mysql.jdbc.Driver"
+
+# MYSQL_TARGET_TABLE = "top_20_businesses"
+# MYSQL_TARGET_TABLE = "sum_music"
+MYSQL_TARGET_TABLE = "something"
 
 # 通过hook获取mysql连接信息
 mysql_conn = BaseHook.get_connection(MYSQL_CONN_ID)

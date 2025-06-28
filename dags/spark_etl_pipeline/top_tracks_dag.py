@@ -6,16 +6,16 @@ from airflow.operators.empty import EmptyOperator
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from airflow.hooks.base import BaseHook
 
-SPARK_SCRIPTS_PATH = "dags/spark_etl_pipeline/scripts"
-TRACK_PATH = "hdfs:///mir/idomaar/track.idomaar"
-PERSON_PATH = "hdfs:///mir/idomaar/persons.idomaar"
-ALBUM_PATH = "hdfs:///mir/idomaar/albums.idomaar"
+SPARK_SCRIPTS_PATH = "airflow/dags/spark_etl_pipeline/scripts"
+TRACK_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/tracks.idomaar"
+PERSON_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/persons.idomaar"
+ALBUM_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/albums.idomaar"
 
 MYSQL_CONN_ID = "mysql_ads_db2"
 MYSQL_TARGET_TABLE = "top_track"
 MYSQL_DRIVER = "com.mysql.jdbc.Driver"
 
-# 读取 mysql 连接信息
+# 璇诲彇 mysql 杩炴帴淇℃伅
 mysql_conn = BaseHook.get_connection(MYSQL_CONN_ID)
 mysql_jdbc_url = f"jdbc:mysql://{mysql_conn.host}:{mysql_conn.port}/{mysql_conn.schema}"
 mysql_user = mysql_conn.login
