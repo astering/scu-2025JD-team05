@@ -33,7 +33,7 @@ if __name__ == "__main__":
             if not country:
                 return None
             username = user_props.get("lastfm_username", "").strip()
-            username_decoded = urllib.parse.unquote(username)  # ✅ 仅解码用户名
+            username_decoded = urllib.parse.unquote(username)  # 仅解码用户名
             return (country, username_decoded)
         except Exception:
             return None
