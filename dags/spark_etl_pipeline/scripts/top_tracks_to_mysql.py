@@ -76,8 +76,10 @@ if __name__ == "__main__":
         )
 
     # 3. 前100
+    # 先按playcount去重，保留playcount最大的那条记录（如有重复playcount则任选一条）
+    track_df_dedup = track_df.dropDuplicates(["playcount"])
     window_spec = Window.orderBy(col("playcount").desc())
-    top_tracks = track_df.withColumn("rank", row_number().over(window_spec)).filter("rank <= 100").drop("rank")
+    top_tracks = track_df_dedup.withColumn("rank", row_number().over(window_spec)).filter("rank <= 100")
 
     # 4. 读取 person 和 album 映射
     def extract_name(df, id_col="id"):
@@ -98,12 +100,15 @@ if __name__ == "__main__":
     # 5. join 三表
     final_df = top_tracks \
         .join(person_df, top_tracks.artist_id == person_df.id, how="left") \
-        .drop(person_df.id) \
-        .join(album_df, top_tracks.album_id == album_df.id, how="left") \
-        .drop(album_df.id)
+        .drop(person_df.id)
+
+    # 注意末尾有没有斜杠
+    #     .join(album_df, top_tracks.album_id == album_df.id, how="left") \ # top_tracks.album_id基本都是空的，匹配不到
+    #     .drop(album_df.id)
 
     # 明确类型
     final_df = final_df.selectExpr(
+        "cast(rank as BIGINT)",
         "cast(track_id as BIGINT)",
         "cast(duration as BIGINT)",
         "cast(playcount as BIGINT)",
@@ -112,7 +117,7 @@ if __name__ == "__main__":
         "cast(artist_id as BIGINT)",
         "cast(artist_name as STRING)",
         "cast(album_id as BIGINT)",
-        "cast(album_name as STRING)"
+        # "cast(album_name as STRING)"
     )
 
     # 6. 写入 MySQL
