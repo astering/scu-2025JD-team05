@@ -76,7 +76,7 @@ if __name__ == "__main__":
         )
 
     # 3. 前100
-    # 先按playcount去重，如有重复playcount则任选一条
+    # 先按playcount去重，保留playcount最大的那条记录（如有重复playcount则任选一条）
     track_df_dedup = track_df.dropDuplicates(["playcount"])
     window_spec = Window.orderBy(col("playcount").desc())
     top_tracks = track_df_dedup.withColumn("rank", row_number().over(window_spec)).filter("rank <= 100")
