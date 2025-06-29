@@ -10,7 +10,7 @@ default_args = {
 }
 
 SPARK_SCRIPT = "airflow/dags/node2/scripts/user_country_to_mysql.py"
-USER_FILE = "hdfs://node-master:9000/mir/ThirtyMusic/entities/user.idomaar"
+USER_FILE = "hdfs://node-master:9000/mir/ThirtyMusic/entities/users.idomaar"
 
 conn = BaseHook.get_connection("mysql_ads_db2")
 mysql_url = f"jdbc:mysql://{conn.host}:{conn.port}/{conn.schema}"
