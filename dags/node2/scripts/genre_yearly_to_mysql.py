@@ -47,7 +47,7 @@ if __name__ == "__main__":
     events_df = spark.read.option("delimiter", "\t").schema(event_schema).csv(event_path)
     events_df = events_df.filter(col("event_type") == "event.play")
 
-    # ½âÎö×Ö¶Î
+    # è§£æå­—æ®µ
     from pyspark.sql.functions import from_json
     payload_schema = StructType([StructField("playtime", LongType(), True)])
     meta_schema = StructType([
@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
     result_df = exploded_df.groupBy("year", "tag").count().withColumnRenamed("count", "play_count")
 
-    # === 5. Ğ´Èë MySQL ===
+    # === 5. å†™å…¥ MySQL ===
     result_df.write \
         .format("jdbc") \
         .option("url", mysql_url) \
