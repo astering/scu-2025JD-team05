@@ -1,8 +1,6 @@
 import sys
-import urllib.parse
-
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, row_number, from_json, udf
+from pyspark.sql.functions import col, row_number, from_json, expr, explode
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, ArrayType, LongType
 from pyspark.sql.window import Window
 
@@ -24,9 +22,7 @@ if __name__ == "__main__":
 
     spark = SparkSession.builder.appName("TopTracksETL").getOrCreate()
 
-    decode_udf = udf(lambda s: urllib.parse.unquote(s) if s else s, StringType())
-
-    # === 1. schema ===
+    # 1. 定义结构
     track_schema = StructType([
         StructField("event_type", StringType(), True),
         StructField("track_id", LongType(), True),
@@ -64,7 +60,7 @@ if __name__ == "__main__":
 
     album_schema = person_schema
 
-    # === 2. load and parse track.idomaar ===
+    # 2. 读取 track.idomaar
     track_raw = spark.read.option("delimiter", "\t").schema(track_schema).csv(track_path)
     track_df = track_raw \
         .withColumn("payload_json", from_json(col("payload"), json_payload_schema)) \
@@ -79,16 +75,13 @@ if __name__ == "__main__":
             col("meta_json.albums")[0]["id"].alias("album_id")
         )
 
-    # === 3. 去重，track_id 相同时保留 playcount 最大的 ===
-    window_dedup = Window.partitionBy("track_id").orderBy(col("playcount").desc())
-    track_df = track_df.withColumn("row_num", row_number().over(window_dedup)).filter("row_num = 1").drop("row_num")
-
-    # === 4. 取前 100 ===
-
+    # 3. 前100
+    # 先按playcount去重，保留playcount最大的那条记录（如有重复playcount则任选一条）
+    track_df_dedup = track_df.dropDuplicates(["playcount"])
     window_spec = Window.orderBy(col("playcount").desc())
     top_tracks = track_df_dedup.withColumn("rank", row_number().over(window_spec)).filter("rank <= 100")
 
-    # === 5. 读取 person 和 album 映射 ===
+    # 4. 读取 person 和 album 映射
     def extract_name(df, id_col="id"):
         return df.withColumn("payload_json", from_json(col("payload"), StructType([
             StructField("MBID", StringType(), True),
@@ -104,16 +97,16 @@ if __name__ == "__main__":
     person_df = extract_name(person_raw, "id").withColumnRenamed("name", "artist_name")
     album_df = extract_name(album_raw, "id").withColumnRenamed("name", "album_name")
 
-    # === 6. URL 解码字段 ===
-    person_df = person_df.withColumn("artist_name", decode_udf(col("artist_name")))
-    top_tracks = top_tracks.withColumn("title", decode_udf(col("title")))
-
-    # === 7. Join 三表 ===
+    # 5. join 三表
     final_df = top_tracks \
-        .join(person_df, top_tracks.artist_id == person_df.id, how="left").drop(person_df.id) \
-        .join(album_df, top_tracks.album_id == album_df.id, how="left").drop(album_df.id)
+        .join(person_df, top_tracks.artist_id == person_df.id, how="left") \
+        .drop(person_df.id)
 
-    # 明确字段类型
+    # 注意末尾有没有斜杠
+    #     .join(album_df, top_tracks.album_id == album_df.id, how="left") \ # top_tracks.album_id基本都是空的，匹配不到
+    #     .drop(album_df.id)
+
+    # 明确类型
     final_df = final_df.selectExpr(
         "cast(rank as BIGINT)",
         "cast(track_id as BIGINT)",
@@ -127,7 +120,7 @@ if __name__ == "__main__":
         # "cast(album_name as STRING)"
     )
 
-    # === 8. 写入 MySQL ===
+    # 6. 写入 MySQL
     final_df.write \
         .format("jdbc") \
         .option("url", mysql_url) \
