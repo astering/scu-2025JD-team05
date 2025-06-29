@@ -9,6 +9,7 @@ from pyspark.sql.functions import col, from_json, udf
 from pyspark.sql.types import StructType, StructField, LongType, StringType, IntegerType, MapType, ArrayType, TimestampType
 from pyspark.sql.functions import lit
 
+# 安全地进行 URL 解码
 def decode_url(s):
     try:
         return urllib.parse.unquote(s) if s else "NULL"
@@ -16,7 +17,7 @@ def decode_url(s):
         return "NULL"
 
 if __name__ == "__main__":
-    if len(sys.argv) != 6:
+    if len(sys.argv) != 10:
         print("""
         Usage: play_event_to_mysql.py <events_path> <users_path> <tracks_path> <lastfm_json_dir> <mysql_url> <mysql_user> <mysql_password> <mysql_driver> <mysql_table>
         """, file=sys.stderr)
@@ -34,7 +35,6 @@ if __name__ == "__main__":
 
     spark = SparkSession.builder.appName("PlayEventETL").getOrCreate()
 
-    # 注册 UDF
     decode_udf = udf(decode_url, StringType())
 
     # schema for events.idomaar
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     tracks_df = tracks_raw.withColumn("payload_json", from_json(col("payload"), track_payload_schema)) \
         .select(col("track_id"), decode_udf(col("payload_json.name")).alias("track_name"))
 
-    # 4. 遍历 lastfm json 文件，构造 track_tag
+    # 4. 遍历 lastfm JSON 文件，构造 tag 数据
     import glob
     tag_data = []
     for json_file in glob.glob(os.path.join(lastfm_json_dir, "**/*.json"), recursive=True):
@@ -105,14 +105,15 @@ if __name__ == "__main__":
             with open(json_file, "r", encoding="utf-8") as f:
                 j = json.load(f)
                 title = decode_url(j.get("title", "NULL"))
-                tags = [t[0] for t in j.get("tags", [])]  # 取每个(tag, score)中tag
+                tags = [t[0] for t in j.get("tags", []) if t and isinstance(t, (list, tuple)) and len(t) > 0]
                 tag_data.append((title, ",".join(tags)))
-        except:
+        except Exception as e:
+            print(f"Failed to parse {json_file}: {e}", file=sys.stderr)
             continue
 
     tag_df = spark.createDataFrame(tag_data, ["track_name", "track_tag"])
 
-    # 5. Join 所有信息
+    # 5. Join 合并
     final_df = events_df \
         .join(users_df, on="user_id", how="left") \
         .join(tracks_df, on="track_id", how="left") \
