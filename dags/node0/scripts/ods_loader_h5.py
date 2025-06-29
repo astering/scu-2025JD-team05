@@ -1,12 +1,47 @@
 import sys
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, Row
+import json
+
+MSD_WRAPPERS_BASE = "/home/aka/airflow/msd_wrappers"
+sys.path.append(MSD_WRAPPERS_BASE)
+
+import hdf5_getters
+# import numpy as np
+
+def get_json(h5_in, songidx_in):
+    # get params
+    h5 = h5_in
+    songidx = songidx_in
+
+    # get all getters
+    getters = list(filter(lambda x: x[:4] == 'get_', list(hdf5_getters.__dict__.keys())))
+    getters.remove("get_num_songs") # special case
+    # getters = np.sort(getters)
+
+    data = {}
+
+    # put them in json
+    for getter in getters:
+        try:
+            res = getattr(hdf5_getters, getter)(h5, songidx)
+        except AttributeError as e:
+            continue
+        data[getter[4:]] = res
+        continue
+        if res.__class__.__name__ == 'ndarray':
+            print(getter[4:] + ": shape =", res.shape)
+        else:
+            print(getter[4:] + ":", res)
+
+    return json.dumps(data)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: ods_loader.py <input_path> <ods_table_name>", file=sys.stderr)
         sys.exit(-1)
 
-    input_path = sys.argv[1]  # e.g., 'hdfs:///user/airflow/raw_data/sales.csv'
+    # input_path = sys.argv[1]  # e.g., 'hdfs:///user/airflow/raw_data/sales.csv'
+    input_path = 'hdfs:/node-master:9000/mir/millionsongsubset/msd_summary_file.h5'
     ods_table_name = sys.argv[2]  # e.g., 'ods.sales_raw'
 
     # 1. 创建支持 Hive 的 SparkSession
@@ -21,8 +56,18 @@ if __name__ == "__main__":
     try:
         # text读取的数据的列为value，将其重命名为json_body
         # 默认按行分割，一行原文占用数据表一行
-        raw_df = (spark.read.text(input_path)
-                    .withColumnRenamed('value', 'json_body'))
+
+        json_rows = []
+        h5 = hdf5_getters.open_h5_file_read(input_path)
+        numSongs = hdf5_getters.get_num_songs(h5)
+
+        for i in range(numSongs):
+            json_obj = get_json(h5, i)
+            json_rows.append(Row(json_body=json_obj))
+
+        h5.close()
+
+        raw_df = spark.createDataFrame(json_rows)
         print(f"Successfully read data from HDFS path: {input_path}")
         raw_df.printSchema()
 
