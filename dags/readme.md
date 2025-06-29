@@ -1,1 +1,2 @@
 所有airflow脚本放入此文件夹及其子文件夹
+注意py脚本里面SPARK_SCRIPTS_PATH的路径设置
