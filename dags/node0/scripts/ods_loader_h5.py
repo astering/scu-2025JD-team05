@@ -40,8 +40,8 @@ if __name__ == "__main__":
         print("Usage: ods_loader.py <input_path> <ods_table_name>", file=sys.stderr)
         sys.exit(-1)
 
-    # input_path = sys.argv[1]  # e.g., 'hdfs:///user/airflow/raw_data/sales.csv'
-    input_path = 'hdfs:/node-master:9000/mir/millionsongsubset/msd_summary_file.h5'
+    input_path = sys.argv[1]  # e.g., 'hdfs:///user/airflow/raw_data/sales.csv'
+    input_path = '~/mir/millionsongsubset/msd_summary_file.h5'
     ods_table_name = sys.argv[2]  # e.g., 'ods.sales_raw'
 
     # 1. 创建支持 Hive 的 SparkSession

@@ -65,17 +65,17 @@ with DAG(
     # 这个任务演示了数据提取和上传的过程
     # 它会从本地文件目录上传文件到 HDFS，并确保每次运行时都是一样的
 
-    upload_to_hdfs = BashOperator(
-        task_id="upload_source_data_to_hdfs",
-        bash_command=f"""
-            # 确保 HDFS 目标目录存在，并清理旧文件
-            hdfs dfs -mkdir -p {HDFS_RAW_DATA_PATH}
-            hdfs dfs -rm -f {HDFS_RAW_DATA_PATH}/{FILE_NAME}
+    # upload_to_hdfs = BashOperator(
+    #     task_id="upload_source_data_to_hdfs",
+    #     bash_command=f"""
+    #         # 确保 HDFS 目标目录存在，并清理旧文件
+    #         hdfs dfs -mkdir -p {HDFS_RAW_DATA_PATH}
+    #         hdfs dfs -rm -f {HDFS_RAW_DATA_PATH}/{FILE_NAME}
 
-            # 上传新文件到 HDFS
-            hdfs dfs -put {LOCAL_FILE_DATA_PATH}/{FILE_NAME} {HDFS_RAW_DATA_PATH}/{FILE_NAME}
-        """,
-    )
+    #         # 上传新文件到 HDFS
+    #         hdfs dfs -put {LOCAL_FILE_DATA_PATH}/{FILE_NAME} {HDFS_RAW_DATA_PATH}/{FILE_NAME}
+    #     """,
+    # )
 
     # --- 3. 运行 Spark 作业加载数据到 ODS 层 ---
     ods_load_spark_job = SparkSubmitOperator(
