@@ -10,23 +10,35 @@ from airflow.hooks.base import BaseHook
 # --- 1. 定义常量和变量 ---
 # 确保这些路径对于 Airflow Worker 是可访问的
 # 如果脚本在 HDFS 上，使用 hdfs:///... 路径
-SPARK_SCRIPTS_PATH = "dags/spark_etl_pipeline/scripts"
-HDFS_RAW_DATA_PATH = "hdfs://node-master:9000/yelp"
-LOCAL_FILE_DATA_PATH = "~/yelp"
-FILE_NAME = "yelp_academic_dataset_business.json"
+AIRFLOW_HOME = "airflow" # 必须在用户家目录下，前后不能有斜杠
+SPARK_SCRIPTS_PATH = AIRFLOW_HOME + "/dags/spark_etl_pipeline/scripts"
+# 或者干脆写成：SPARK_SCRIPTS_PATH = "airflow/dags/spark_etl_pipeline/scripts"
+
+# HDFS_RAW_DATA_PATH = "hdfs://node-master:9000/yelp"
+# LOCAL_FILE_DATA_PATH = "~/yelp"
+# FILE_NAME = "yelp_academic_dataset_business.json"
+HDFS_RAW_DATA_PATH = "hdfs://node-master:9000/mir/millionsongsubset" # 末尾不能有斜杠
+LOCAL_FILE_DATA_PATH = "~/mir/millionsongsubset" # 末尾不能有斜杠
+FILE_NAME = "millionsongsubset2.json" # 前面不能有斜杠
 
 # Hive 数据库和表名
 ODS_DB = "ods"
 DW_DB = "dw"
-ODS_TABLE = "ods_business"
-DW_TABLE = "dw_business"
+
+# ODS_TABLE = "ods_business"
+# DW_TABLE = "dw_business"
+ODS_TABLE = "ods_music"
+DW_TABLE = "dw_music"
 
 ODS_TABLE_FQN = f"{ODS_DB}.{ODS_TABLE}"  # FQN: Fully Qualified Name
 DW_TABLE_FQN = f"{DW_DB}.{DW_TABLE}"
 
-MYSQL_CONN_ID = "mysql_ads_db"
-MYSQL_TARGET_TABLE = "top_20_businesses"
+MYSQL_CONN_ID = "mysql_ads_db2"
 MYSQL_DRIVER = "com.mysql.jdbc.Driver"
+
+# MYSQL_TARGET_TABLE = "top_20_businesses"
+# MYSQL_TARGET_TABLE = "sum_music"
+MYSQL_TARGET_TABLE = "something"
 
 # 通过hook获取mysql连接信息
 mysql_conn = BaseHook.get_connection(MYSQL_CONN_ID)
@@ -36,8 +48,9 @@ mysql_user = mysql_conn.login
 mysql_password = mysql_conn.password
 
 with DAG(
-        dag_id="spark_etl_hdfs_to_hive_dw",
-        start_date=pendulum.datetime(2023, 1, 1, tz="UTC"),
+        # dag_id="spark_etl_hdfs_to_hive_dw",
+        dag_id="spark_etl_dw_to_mysql",
+        start_date=pendulum.datetime(2025, 1, 1, tz="UTC"),
         catchup=False,
         schedule=None,  # 或者 "0 2 * * *" 表示每天凌晨2点运行
         tags=["spark", "etl", "hive"],
@@ -52,9 +65,12 @@ with DAG(
 ) as dag:
     start = EmptyOperator(task_id="start")
 
+    '''
+
     # --- 2. 准备数据并上传到 HDFS ---
     # 这个任务演示了数据提取和上传的过程
     # 它会从本地文件目录上传文件到 HDFS，并确保每次运行时都是一样的
+
     upload_to_hdfs = BashOperator(
         task_id="upload_source_data_to_hdfs",
         bash_command=f"""
@@ -95,12 +111,14 @@ with DAG(
         name="dw_transform_{{ ds_nodash }}",
         verbose=True,
     )
+    '''
 
-    load_top_businesses_to_mysql = SparkSubmitOperator(
-        task_id="spark_load_top_businesses_to_mysql",
+    # 5. 处理分析dw层数据，存入mysql
+    load_sum_music_to_mysql = SparkSubmitOperator(
+        task_id="spark_load_sum_music_to_mysql",
         conn_id="spark_default",
-        application=f"{SPARK_SCRIPTS_PATH}/top_businesses_to_mysql.py",
-        # 传入新脚本需要的参数
+        application=f"{SPARK_SCRIPTS_PATH}/sum_music_to_mysql.py",
+        #传入新脚本需要的参数
         application_args=[
             DW_TABLE_FQN,
             mysql_jdbc_url,
@@ -109,11 +127,14 @@ with DAG(
             MYSQL_DRIVER,
             MYSQL_TARGET_TABLE
         ],
-        name="top_businesses_to_mysql_{{ ds_nodash }}",
+        name="sum_music_to_mysql_{{ ds_nodash }}",
         verbose=True,
     )
 
     end = EmptyOperator(task_id="end")
 
     # --- 5. 定义任务依赖关系 ---
-    start >> upload_to_hdfs >> ods_load_spark_job >> dw_transform_spark_job >> load_top_businesses_to_mysql >> end
+    # start >> ods_load_spark_job >> dw_transform_spark_job >> end
+    # start >> upload_to_hdfs >> ods_load_spark_job >> dw_transform_spark_job >> end
+    # start >> upload_to_hdfs >> ods_load_spark_job >> dw_transform_spark_job >> load_top_businesses_to_mysql >> end
+    start >> load_sum_music_to_mysql >> end
