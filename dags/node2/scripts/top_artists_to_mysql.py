@@ -19,7 +19,7 @@ if __name__ == "__main__":
         .getOrCreate()
 
     try:
-        # ¶ÁÈ¡²¢½âÎö track.idomaar
+        # è¯»å–å¹¶è§£æ track.idomaar
         def parse_track_line(line):
             try:
                 parts = line.strip().split("\t")
@@ -43,7 +43,7 @@ if __name__ == "__main__":
             StructField("artist_id", LongType(), True)
         ]))
 
-        # ¶ÁÈ¡²¢½âÎö persons.idomaar
+        # è¯»å–å¹¶è§£æ persons.idomaar
         def parse_person_line(line):
             try:
                 parts = line.strip().split("\t")
@@ -64,7 +64,7 @@ if __name__ == "__main__":
             StructField("artist_name", StringType(), True)
         ]))
 
-        # ¾ÛºÏ²¥·ÅÁ¿
+        # èšåˆæ’­æ”¾é‡
         joined_df = track_df.join(person_df, on="artist_id", how="left")
 
         top_artist_df = joined_df.groupBy("artist_id", "artist_name") \
@@ -72,7 +72,7 @@ if __name__ == "__main__":
             .orderBy(desc("total_playcount")) \
             .limit(100)
 
-        # Ğ´Èë MySQL
+        # å†™å…¥ MySQL
         top_artist_df.write \
             .format("jdbc") \
             .option("url", jdbc_url) \
@@ -83,10 +83,10 @@ if __name__ == "__main__":
             .mode("overwrite") \
             .save()
 
-        print("? Successfully wrote top 100 artists to MySQL.")
+        print("Successfully wrote top 100 artists to MySQL.")
 
     except Exception as e:
-        print(f"? Error: {e}", file=sys.stderr)
+        print(f"Error: {e}", file=sys.stderr)
         spark.stop()
         sys.exit(1)
 
