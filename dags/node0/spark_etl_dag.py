@@ -19,7 +19,7 @@ SPARK_SCRIPTS_PATH = "airflow/dags/node0/scripts"
 
 HDFS_RAW_DATA_PATH = "hdfs://node-master:9000/mir/millionsongsubset" # 末尾不能有斜杠
 LOCAL_FILE_DATA_PATH = "~/mir/millionsongsubset" # 末尾不能有斜杠
-FILE_NAME = "msd_summary_file.h5" # 前面不能有斜杠
+FILE_NAME = "msd_summary_file.json" # 前面不能有斜杠
 
 # Hive 数据库和表名
 ODS_DB = "ods"
@@ -84,7 +84,7 @@ with DAG(
     ods_load_spark_job = SparkSubmitOperator(
         task_id="spark_load_to_ods_hive",
         conn_id="spark_default",  # 引用在 Airflow UI 中配置的连接
-        application=f"{SPARK_SCRIPTS_PATH}/ods_loader_h5.py",
+        application=f"{SPARK_SCRIPTS_PATH}/ods_loader.py",
         application_args=[f"{HDFS_RAW_DATA_PATH}/{FILE_NAME}", ODS_TABLE_FQN],
         # Spark 应用的配置
         conf={"spark.driver.memory": "2g"},
