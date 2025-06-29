@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 
 import pendulum
 from airflow.models.dag import DAG
@@ -128,7 +128,7 @@ with DAG(
     end = EmptyOperator(task_id="end")
 
     # --- 5. 定义任务依赖关系 ---
-    # start >> ods_load_spark_job >> dw_transform_spark_job >> end
-    start >> upload_to_hdfs >> ods_load_spark_job >> dw_transform_spark_job >> end
+    start >> ods_load_spark_job >> dw_transform_spark_job >> end
+    # start >> upload_to_hdfs >> ods_load_spark_job >> dw_transform_spark_job >> end
     # start >> upload_to_hdfs >> ods_load_spark_job >> dw_transform_spark_job >> load_result_to_mysql >> end
     # start >> load_sum_music_to_mysql >> end
