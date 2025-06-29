@@ -20,8 +20,9 @@ if __name__ == "__main__":
     # 2. 从 HDFS 读取原始数据 (直接读取原始json数据，不解析)
     try:
         # text读取的数据的列为value，将其重命名为json_body
+        # 默认按行分割，一行原文占用数据表一行
         raw_df = (spark.read.text(input_path)
-                  .withColumnRenamed('value', 'json_body'))
+                    .withColumnRenamed('value', 'json_body'))
         print(f"Successfully read data from HDFS path: {input_path}")
         raw_df.printSchema()
 
