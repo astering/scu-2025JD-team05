@@ -16,6 +16,7 @@ import SearchBar from '@/components/main/SearchBar.vue'
 import MainContent from '@/components/main/MainContent.vue'
 import Live2DWidget from "@/components/live2d/Live2DWidget.vue";
 
+
 function onMenuChange(index) {
   console.log("菜单切换到索引:", index)
 }
