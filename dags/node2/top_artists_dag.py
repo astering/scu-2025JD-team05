@@ -6,7 +6,7 @@ from airflow.operators.empty import EmptyOperator
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from airflow.hooks.base import BaseHook
 
-SPARK_SCRIPTS_PATH = "dags/spark_etl_pipeline/scripts"
+SPARK_SCRIPTS_PATH = "dags/node2/scripts"
 TRACK_PATH = "hdfs:///mir/ThirtyMusic/entities/tracks.idomaar"
 PERSON_PATH = "hdfs:///mir/ThirtyMusic/entities/persons.idomaar"
 ALBUM_PATH = "hdfs:///mir/ThirtyMusic/entities/albums.idomaar"

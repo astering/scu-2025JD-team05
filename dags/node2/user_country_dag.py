@@ -11,7 +11,7 @@ default_args = {
     'catchup': False,
 }
 
-SPARK_SCRIPT = "airflow/dags/spark_etl_pipeline/scripts/user_country_to_mysql.py"
+SPARK_SCRIPT = "airflow/dags/node2/scripts/user_country_to_mysql.py"
 USER_FILE = "hdfs://node-master:9000/mir/ThirtyMusic/entities/user.idomaar"
 
 conn = BaseHook.get_connection("mysql_ads_db2")

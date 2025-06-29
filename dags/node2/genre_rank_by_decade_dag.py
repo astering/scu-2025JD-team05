@@ -5,7 +5,7 @@ from airflow.hooks.base import BaseHook
 import pendulum
 
 MYSQL_CONN_ID = "mysql_ads_db2"
-SPARK_SCRIPT_PATH = "airflow/dags/spark_etl_pipeline/scripts/genre_rank_by_decade.py"
+SPARK_SCRIPT_PATH = "airflow/dags/node2/scripts/genre_rank_by_decade.py"
 
 mysql_conn = BaseHook.get_connection(MYSQL_CONN_ID)
 mysql_jdbc_url = f"jdbc:mysql://{mysql_conn.host}:{mysql_conn.port}/{mysql_conn.schema}"
