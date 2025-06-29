@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     spark = SparkSession.builder.appName("PlayEventETL").getOrCreate()
 
-    # ×¢²á UDF
+    # æ³¨å†Œ UDF
     decode_udf = udf(decode_url, StringType())
 
     # schema for events.idomaar
@@ -52,7 +52,7 @@ if __name__ == "__main__":
         StructField("objects", ArrayType(MapType(StringType(), StringType())))
     ])
 
-    # 1. ¶ÁÈ¡ events
+    # 1. è¯»å– events
     events_raw = spark.read.option("delimiter", "\t").schema(event_schema).csv(events_path)
     events_df = events_raw.filter(col("event_type") == "event.play") \
         .withColumn("payload_json", from_json(col("payload"), payload_schema)) \
@@ -65,7 +65,7 @@ if __name__ == "__main__":
             col("meta_json.objects")[0]["id"].cast(LongType()).alias("track_id")
         )
 
-    # 2. ¶ÁÈ¡ users
+    # 2. è¯»å– users
     user_schema = StructType([
         StructField("event_type", StringType(), True),
         StructField("user_id", LongType(), True),
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     users_df = users_raw.withColumn("payload_json", from_json(col("payload"), user_payload_schema)) \
         .select(col("user_id"), decode_udf(col("payload_json.lastfm_username")).alias("user_name"))
 
-    # 3. ¶ÁÈ¡ tracks
+    # 3. è¯»å– tracks
     track_schema = StructType([
         StructField("event_type", StringType(), True),
         StructField("track_id", LongType(), True),
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     tracks_df = tracks_raw.withColumn("payload_json", from_json(col("payload"), track_payload_schema)) \
         .select(col("track_id"), decode_udf(col("payload_json.name")).alias("track_name"))
 
-    # 4. ±éÀú lastfm json ÎÄ¼ş£¬¹¹Ôì track_tag
+    # 4. éå† lastfm json æ–‡ä»¶ï¼Œæ„é€  track_tag
     import glob
     tag_data = []
     for json_file in glob.glob(os.path.join(lastfm_json_dir, "**/*.json"), recursive=True):
@@ -105,21 +105,21 @@ if __name__ == "__main__":
             with open(json_file, "r", encoding="utf-8") as f:
                 j = json.load(f)
                 title = decode_url(j.get("title", "NULL"))
-                tags = [t[0] for t in j.get("tags", [])]  # È¡Ã¿¸ö(tag, score)ÖĞtag
+                tags = [t[0] for t in j.get("tags", [])]  # å–æ¯ä¸ª(tag, score)ä¸­tag
                 tag_data.append((title, ",".join(tags)))
         except:
             continue
 
     tag_df = spark.createDataFrame(tag_data, ["track_name", "track_tag"])
 
-    # 5. Join ËùÓĞĞÅÏ¢
+    # 5. Join æ‰€æœ‰ä¿¡æ¯
     final_df = events_df \
         .join(users_df, on="user_id", how="left") \
         .join(tracks_df, on="track_id", how="left") \
         .join(tag_df, on="track_name", how="left") \
         .fillna({"user_name": "NULL", "track_name": "NULL", "track_tag": "NULL"})
 
-    # 6. Ğ´Èë MySQL
+    # 6. å†™å…¥ MySQL
     final_df.select(
         col("event_id"),
         col("event_time"),

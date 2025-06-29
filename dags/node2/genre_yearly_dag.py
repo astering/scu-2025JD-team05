@@ -9,7 +9,7 @@ from airflow.hooks.base import BaseHook
 SPARK_SCRIPTS_PATH = "airflow/dags/node2/scripts"
 EVENT_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/relations/events.idomaar"
 TRACK_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/tracks.idomaar"
-LASTFM_PATH = "file:///mir/lastfm_subset"  # ¿É¸ù¾İ¹ÒÔØµ÷Õû
+LASTFM_PATH = "file:///mir/lastfm_subset"  # å¯æ ¹æ®æŒ‚è½½è°ƒæ•´
 
 MYSQL_CONN_ID = "mysql_ads_db2"
 MYSQL_TARGET_TABLE = "genre_yearly_stat"

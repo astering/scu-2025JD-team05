@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
     spark = SparkSession.builder.appName("GenreByDecade").getOrCreate()
 
-    # Step 1: ¶ÁÈ¡ events Êı¾İ
+    # Step 1: è¯»å– events æ•°æ®
     event_schema = StructType([
         StructField("event_type", StringType()),
         StructField("event_id", LongType()),
@@ -41,7 +41,7 @@ if __name__ == "__main__":
         col("meta_json.objects")[0]["id"].alias("track_id")
     )
 
-    # Step 2: ÓÃ»§ĞÅÏ¢
+    # Step 2: ç”¨æˆ·ä¿¡æ¯
     user_schema = StructType([
         StructField("event_type", StringType()),
         StructField("user_id", LongType()),
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     tracks = tracks_df.select("track_id", col("payload_json.name").alias("track_name")).fillna("NULL")
     tracks = tracks.withColumn("track_name", expr("decode(unbase64(translate(track_name, '+', ' ')), 'UTF-8')"))
 
-    # Step 4: ¶ÁÈ¡ËùÓĞ JSON ÎÄ¼ş£¨track title -> tags£©
+    # Step 4: è¯»å–æ‰€æœ‰ JSON æ–‡ä»¶ï¼ˆtrack title -> tagsï¼‰
     import glob
     all_json_files = glob.glob(os.path.join(json_dir, "**", "*.json"), recursive=True)
     tag_data = []
@@ -91,7 +91,7 @@ if __name__ == "__main__":
 
     tag_df = spark.createDataFrame(tag_data, ["track_name", "tag"])
 
-    # Step 5: ÁªºÏËùÓĞÊı¾İ
+    # Step 5: è”åˆæ‰€æœ‰æ•°æ®
     joined = play_events.join(users, "user_id", "inner") \
                         .join(tracks, "track_id", "inner") \
                         .join(tag_df, "track_name", "left")

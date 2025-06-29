@@ -15,7 +15,7 @@ MYSQL_CONN_ID = "mysql_ads_db2"
 MYSQL_TARGET_TABLE = "top_artist"
 MYSQL_DRIVER = "com.mysql.jdbc.Driver"
 
-# 读取 mysql 连接信息
+# 璇诲彇 mysql 杩炴帴淇℃伅
 mysql_conn = BaseHook.get_connection(MYSQL_CONN_ID)
 mysql_jdbc_url = f"jdbc:mysql://{mysql_conn.host}:{mysql_conn.port}/{mysql_conn.schema}"
 mysql_user = mysql_conn.login
