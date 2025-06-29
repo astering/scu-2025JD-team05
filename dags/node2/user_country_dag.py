@@ -43,4 +43,5 @@ with DAG("user_country_to_mysql",
 
     end = EmptyOperator(task_id="end")
 
+
     start >> user_country_task >> end
