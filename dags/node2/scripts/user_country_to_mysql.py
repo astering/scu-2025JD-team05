@@ -17,8 +17,7 @@ if __name__ == "__main__":
     mysql_user = sys.argv[3]
     mysql_password = sys.argv[4]
     mysql_table = "user_country_count"
-    mysql_driver = "com.mysql.jdbc.Driver"  # 或 com.mysql.cj.jdbc.Driver（推荐）
-
+    mysql_driver = "com.mysql.cj.jdbc.Driver"
     spark = SparkSession.builder \
         .appName("User Country Count ETL") \
         .getOrCreate()
