@@ -26,7 +26,7 @@ def get_json(h5_in, songidx_in):
             res = getattr(hdf5_getters, getter)(h5, songidx)
         except AttributeError as e:
             continue
-        data[getter[4:]] = res
+        data[str(getter[4:])] = str(res)
         continue
         if res.__class__.__name__ == 'ndarray':
             print(getter[4:] + ": shape =", res.shape)
@@ -41,8 +41,15 @@ if __name__ == "__main__":
         sys.exit(-1)
 
     input_path = sys.argv[1]  # e.g., 'hdfs:///user/airflow/raw_data/sales.csv'
-    input_path = '~/mir/millionsongsubset/msd_summary_file.h5'
+    # input_path = 'mir/millionsongsubset/msd_summary_file.h5' # 默认家目录，前面不能有斜杠
     ods_table_name = sys.argv[2]  # e.g., 'ods.sales_raw'
+
+    if input_path.startswith("hdfs://"):
+        # 用hadoop fs命令下载到本地临时文件
+        import subprocess
+        local_tmp = "/tmp/msd_summary_file.h5"
+        subprocess.run(["hdfs", "dfs", "-copyToLocal", input_path, local_tmp], check=True)
+        input_path = local_tmp
 
     # 1. 创建支持 Hive 的 SparkSession
     spark = SparkSession.builder \

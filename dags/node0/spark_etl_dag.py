@@ -10,9 +10,12 @@ from airflow.hooks.base import BaseHook
 # --- 1. 定义常量和变量 ---
 # 确保这些路径对于 Airflow Worker 是可访问的
 # 如果脚本在 HDFS 上，使用 hdfs:///... 路径
-AIRFLOW_HOME = "airflow" # 必须在用户家目录下，前后不能有斜杠
-SPARK_SCRIPTS_PATH = AIRFLOW_HOME + "/dags/node0/scripts"
-# 或者干脆写成：SPARK_SCRIPTS_PATH = "airflow/dags/node0/scripts"
+
+# 启动airflow时终端的路径即为根路径，一般为家目录
+# AIRFLOW_HOME = "airflow" # 以启动终端时的目录为基，前后不能有斜杠
+# SPARK_SCRIPTS_PATH = AIRFLOW_HOME + "/dags/node0/scripts"
+# 或者干脆写成：
+SPARK_SCRIPTS_PATH = "airflow/dags/node0/scripts"
 
 HDFS_RAW_DATA_PATH = "hdfs://node-master:9000/mir/millionsongsubset" # 末尾不能有斜杠
 LOCAL_FILE_DATA_PATH = "~/mir/millionsongsubset" # 末尾不能有斜杠
