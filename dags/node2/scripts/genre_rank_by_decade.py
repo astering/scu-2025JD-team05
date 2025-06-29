@@ -2,9 +2,11 @@ import sys
 import json
 import urllib.parse
 import os
+import glob
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 from pyspark.sql.types import *
+from pyspark.sql.window import Window
 
 if __name__ == "__main__":
     if len(sys.argv) != 5:
@@ -15,7 +17,7 @@ if __name__ == "__main__":
 
     spark = SparkSession.builder.appName("GenreByDecade").getOrCreate()
 
-    # Step 1: 读取 events 数据
+    # Step 1: Load play events
     event_schema = StructType([
         StructField("event_type", StringType()),
         StructField("event_id", LongType()),
@@ -41,7 +43,7 @@ if __name__ == "__main__":
         col("meta_json.objects")[0]["id"].alias("track_id")
     )
 
-    # Step 2: 用户信息
+    # Step 2: Load user data
     user_schema = StructType([
         StructField("event_type", StringType()),
         StructField("user_id", LongType()),
@@ -58,7 +60,7 @@ if __name__ == "__main__":
     users = users.withColumn("birth_decade", (lit(2025) - col("age")) / 10)
     users = users.withColumn("birth_decade", (floor(col("birth_decade")) * 10).cast("int"))
 
-    # Step 3: track_id -> track_name
+    # Step 3: Load track info
     track_schema = StructType([
         StructField("event_type", StringType()),
         StructField("track_id", LongType()),
@@ -74,24 +76,32 @@ if __name__ == "__main__":
     tracks = tracks_df.select("track_id", col("payload_json.name").alias("track_name")).fillna("NULL")
     tracks = tracks.withColumn("track_name", expr("decode(unbase64(translate(track_name, '+', ' ')), 'UTF-8')"))
 
-    # Step 4: 读取所有 JSON 文件（track title -> tags）
-    import glob
-    all_json_files = glob.glob(os.path.join(json_dir, "**", "*.json"), recursive=True)
+    # Step 4: Read local JSONs for tags
+    local_path = "/tmp/lastfm_jsons"
+    os.system(f"hadoop fs -get {json_dir} {local_path}")
+    all_json_files = glob.glob(os.path.join(local_path, "**", "*.json"), recursive=True)
+
     tag_data = []
     for path in all_json_files:
-        with open(path, "r", encoding="utf-8") as f:
-            try:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
                 content = json.load(f)
                 track_name = urllib.parse.unquote_plus(content.get("title", "NULL"))
                 tags = [t[0] for t in content.get("tags", [])]
                 for tag in tags:
                     tag_data.append((track_name, tag))
-            except:
-                pass
+        except Exception as e:
+            print(f"Error reading {path}: {e}")
 
-    tag_df = spark.createDataFrame(tag_data, ["track_name", "tag"])
+    if tag_data:
+        tag_df = spark.createDataFrame(tag_data, ["track_name", "tag"])
+    else:
+        tag_df = spark.createDataFrame(spark.sparkContext.emptyRDD(), StructType([
+            StructField("track_name", StringType()),
+            StructField("tag", StringType())
+        ]))
 
-    # Step 5: 联合所有数据
+    # Step 5: Join and analyze
     joined = play_events.join(users, "user_id", "inner") \
                         .join(tracks, "track_id", "inner") \
                         .join(tag_df, "track_name", "left")
