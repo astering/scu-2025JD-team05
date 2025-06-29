@@ -107,23 +107,23 @@ with DAG(
     )
 
     # 5. 处理分析dw层数据，存入mysql
-    mission_name = 'analyse_music'
-    load_result_to_mysql = SparkSubmitOperator(
-        task_id=f"spark_{mission_name}_to_mysql",
-        conn_id="spark_default",
-        application=f"{SPARK_SCRIPTS_PATH}/{mission_name}.py",
-        #传入新脚本需要的参数
-        application_args=[
-            DW_TABLE_FQN,
-            mysql_jdbc_url,
-            mysql_user,
-            mysql_password,
-            MYSQL_DRIVER,
-            MYSQL_TARGET_TABLE
-        ],
-        name=f"{mission_name}_to_mysql_{{ ds_nodash }}",
-        verbose=True,
-    )
+    # mission_name = 'analyse_music'
+    # load_result_to_mysql = SparkSubmitOperator(
+    #     task_id=f"spark_{mission_name}_to_mysql",
+    #     conn_id="spark_default",
+    #     application=f"{SPARK_SCRIPTS_PATH}/{mission_name}.py",
+    #     #传入新脚本需要的参数
+    #     application_args=[
+    #         DW_TABLE_FQN,
+    #         mysql_jdbc_url,
+    #         mysql_user,
+    #         mysql_password,
+    #         MYSQL_DRIVER,
+    #         MYSQL_TARGET_TABLE
+    #     ],
+    #     name=f"{mission_name}_to_mysql_{{ ds_nodash }}",
+    #     verbose=True,
+    # )
 
     end = EmptyOperator(task_id="end")
 
