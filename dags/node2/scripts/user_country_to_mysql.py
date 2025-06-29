@@ -72,8 +72,8 @@ if __name__ == "__main__":
             .option("driver", mysql_driver) \
             .mode("overwrite") \
             .save()
-        print("✅ Data written to MySQL successfully.")
+        print("Data written to MySQL successfully.")
     else:
-        print("⚠️ No data to write to MySQL.")
+        print("No data to write to MySQL.")
 
     spark.stop()
