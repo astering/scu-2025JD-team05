@@ -7,7 +7,7 @@ from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOpe
 from airflow.hooks.base import BaseHook
 
 # 通用路径配置
-SPARK_SCRIPTS_PATH = "airflow/dags/spark_etl_pipeline/scripts"
+SPARK_SCRIPTS_PATH = "airflow/dags/node1/scripts"
 
 # 原始任务配置：Top Track
 TRACK_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/tracks.idomaar"
