@@ -10,13 +10,16 @@ from airflow.hooks.base import BaseHook
 # --- 1. 定义常量和变量 ---
 # 确保这些路径对于 Airflow Worker 是可访问的
 # 如果脚本在 HDFS 上，使用 hdfs:///... 路径
-AIRFLOW_HOME = "airflow" # 必须在用户家目录下，前后不能有斜杠
-SPARK_SCRIPTS_PATH = AIRFLOW_HOME + "/dags/node0/scripts"
-# 或者干脆写成：SPARK_SCRIPTS_PATH = "airflow/dags/node0/scripts"
+
+# 启动airflow时终端的路径即为根路径，一般为家目录
+# AIRFLOW_HOME = "airflow" # 以启动终端时的目录为基，前后不能有斜杠
+# SPARK_SCRIPTS_PATH = AIRFLOW_HOME + "/dags/node0/scripts"
+# 或者干脆写成：
+SPARK_SCRIPTS_PATH = "airflow/dags/node0/scripts"
 
 HDFS_RAW_DATA_PATH = "hdfs://node-master:9000/mir/millionsongsubset" # 末尾不能有斜杠
 LOCAL_FILE_DATA_PATH = "~/mir/millionsongsubset" # 末尾不能有斜杠
-FILE_NAME = "msd_summary_file.h5" # 前面不能有斜杠
+FILE_NAME = "msd_summary_file.json" # 前面不能有斜杠
 
 # Hive 数据库和表名
 ODS_DB = "ods"
@@ -65,23 +68,23 @@ with DAG(
     # 这个任务演示了数据提取和上传的过程
     # 它会从本地文件目录上传文件到 HDFS，并确保每次运行时都是一样的
 
-    upload_to_hdfs = BashOperator(
-        task_id="upload_source_data_to_hdfs",
-        bash_command=f"""
-            # 确保 HDFS 目标目录存在，并清理旧文件
-            hdfs dfs -mkdir -p {HDFS_RAW_DATA_PATH}
-            hdfs dfs -rm -f {HDFS_RAW_DATA_PATH}/{FILE_NAME}
+    # upload_to_hdfs = BashOperator(
+    #     task_id="upload_source_data_to_hdfs",
+    #     bash_command=f"""
+    #         # 确保 HDFS 目标目录存在，并清理旧文件
+    #         hdfs dfs -mkdir -p {HDFS_RAW_DATA_PATH}
+    #         hdfs dfs -rm -f {HDFS_RAW_DATA_PATH}/{FILE_NAME}
 
-            # 上传新文件到 HDFS
-            hdfs dfs -put {LOCAL_FILE_DATA_PATH}/{FILE_NAME} {HDFS_RAW_DATA_PATH}/{FILE_NAME}
-        """,
-    )
+    #         # 上传新文件到 HDFS
+    #         hdfs dfs -put {LOCAL_FILE_DATA_PATH}/{FILE_NAME} {HDFS_RAW_DATA_PATH}/{FILE_NAME}
+    #     """,
+    # )
 
     # --- 3. 运行 Spark 作业加载数据到 ODS 层 ---
     ods_load_spark_job = SparkSubmitOperator(
         task_id="spark_load_to_ods_hive",
         conn_id="spark_default",  # 引用在 Airflow UI 中配置的连接
-        application=f"{SPARK_SCRIPTS_PATH}/ods_loader_h5.py",
+        application=f"{SPARK_SCRIPTS_PATH}/ods_loader.py",
         application_args=[f"{HDFS_RAW_DATA_PATH}/{FILE_NAME}", ODS_TABLE_FQN],
         # Spark 应用的配置
         conf={"spark.driver.memory": "2g"},
