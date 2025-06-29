@@ -9,10 +9,12 @@ default_args = {
     'catchup': False,
 }
 
-# 📝 路径与参数设置
-SPARK_SCRIPT = "airflow/dags/spark_etl_pipeline/scripts/user_image_to_mysql.py"
-USER_FILE = "hdfs://node-master:9000/mir/ThirtyMusic/entities/users.idomaar"
-SESSION_FILE = "hdfs://node-master:9000/mir/ThirtyMusic/relations/sessions.idomaar"
+# 修改为 Node1 上的脚本路径
+SPARK_SCRIPT = "airflow/dags/node1/scripts/user_image_to_mysql.py"  # 确保脚本路径指向正确位置
+
+# HDFS 文件路径
+USER_FILE = "hdfs://node-master:9000/mir/ThirtyMusic/entities/users.idomaar"  # HDFS 路径
+SESSION_FILE = "hdfs://node-master:9000/mir/ThirtyMusic/relations/sessions.idomaar"  # HDFS 路径
 
 conn = BaseHook.get_connection("mysql_ads_db2")
 mysql_url = f"jdbc:mysql://{conn.host}:{conn.port}/{conn.schema}"

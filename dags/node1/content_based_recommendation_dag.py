@@ -9,7 +9,7 @@ default_args = {
     'catchup': False,
 }
 
-SPARK_SCRIPT = "airflow/dags/spark_etl_pipeline/scripts/content_based_recommendation_to_mysql.py"
+SPARK_SCRIPT = "airflow/dags/node1/scripts/content_based_recommendation_to_mysql.py"
 LOVE_FILE = "hdfs://node-master:9000/mir/ThirtyMusic/relations/love.idomaar"
 TRACK_FILE = "hdfs://node-master:9000/mir/ThirtyMusic/entities/tracks.idomaar"
 
