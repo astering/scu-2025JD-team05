@@ -3,7 +3,7 @@ import json
 import urllib.parse
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
-    col, from_json, explode, lit, floor, when, row_number, udf, array, create_map
+    col, from_json, explode, lit, floor, when, row_number, udf, array, create_map, size
 )
 from pyspark.sql.types import *
 from pyspark.sql.window import Window
@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
     tracks_df = tracks_df.withColumn(
         "tag_structs",
-        when((col("meta_json.tags").isNotNull()) & (col("meta_json.tags") != array()), col("meta_json.tags"))
+        when((col("meta_json.tags").isNotNull()) & (size(col("meta_json.tags")) > 0), col("meta_json.tags"))
         .otherwise(default_tag_struct)
     )
     tracks_exploded = tracks_df.select(
