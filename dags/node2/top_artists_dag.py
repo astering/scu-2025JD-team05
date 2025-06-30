@@ -22,7 +22,7 @@ mysql_user = mysql_conn.login
 mysql_password = mysql_conn.password
 
 with DAG(
-    dag_id="top_artists_etl_to_mysql",
+    dag_id="top_artists_etl_to_mysql_node2",
     start_date=pendulum.datetime(2025, 1, 1, tz="Asia/Shanghai"),
     catchup=False,
     schedule=None,

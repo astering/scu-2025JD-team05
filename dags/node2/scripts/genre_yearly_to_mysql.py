@@ -2,7 +2,7 @@ import sys
 import urllib.parse
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
-    col, from_unixtime, floor, from_json, explode, when, lit, udf, row_number
+    col, from_unixtime, floor, from_json, explode, when, lit, udf, row_number, size, array, struct
 )
 from pyspark.sql.types import (
     StructType, StructField, StringType, IntegerType, LongType, ArrayType, MapType
@@ -85,9 +85,11 @@ if __name__ == "__main__":
     track_df = spark.read.option("delimiter", "\t").schema(track_schema).csv(tracks_path) \
         .withColumn("meta_json", from_json(col("meta"), track_meta_schema)) \
         .withColumn("tag_ids", when(
-            col("meta_json.tags").isNotNull() & (col("meta_json.tags") != []),
+            col("meta_json.tags").isNotNull() & (size(col("meta_json.tags")) > 0),
             col("meta_json.tags")
-        ).otherwise(lit([{"type": "tag", "id": "-1"}]))) \
+        ).otherwise(
+            array(struct(lit("tag").alias("type"), lit("-1").alias("id")))
+        )) \
         .withColumn("tag_id", explode(col("tag_ids"))) \
         .select(
             "track_id",
