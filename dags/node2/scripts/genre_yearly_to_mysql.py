@@ -4,9 +4,12 @@ import json
 import urllib.parse
 from datetime import datetime
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, from_unixtime, year, explode, lit, udf
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, LongType
+from pyspark.sql.functions import col, from_unixtime, year, explode, udf
+from pyspark.sql.types import (
+    StructType, StructField, StringType, IntegerType, LongType, ArrayType
+)
 
+# 提取 Last.fm 标签映射（track_title -> [tag1, tag2, ...]）
 def extract_tags_map(base_dir):
     tags_map = {}
     for root, _, files in os.walk(base_dir):
@@ -23,7 +26,7 @@ def extract_tags_map(base_dir):
     return tags_map
 
 if __name__ == "__main__":
-    if len(sys.argv) != 8:
+    if len(sys.argv) != 9:
         print("""
         Usage: genre_yearly_to_mysql.py <event_path> <track_path> <lastfm_path> <mysql_url> <mysql_user> <mysql_password> <mysql_driver> <target_table>
         """, file=sys.stderr)
@@ -47,31 +50,25 @@ if __name__ == "__main__":
     events_df = spark.read.option("delimiter", "\t").schema(event_schema).csv(event_path)
     events_df = events_df.filter(col("event_type") == "event.play")
 
-    # 解析字段
     from pyspark.sql.functions import from_json
+
     payload_schema = StructType([StructField("playtime", LongType(), True)])
     meta_schema = StructType([
-        StructField("subjects",
-            StructType([StructField("type", StringType(), True), StructField("id", LongType(), True)])),
-        StructField("objects",
-            StructType([StructField("type", StringType(), True), StructField("id", LongType(), True)])
+        StructField("subjects", ArrayType(StructType([
+            StructField("type", StringType(), True),
+            StructField("id", LongType(), True)
+        ]))),
+        StructField("objects", ArrayType(StructType([
+            StructField("type", StringType(), True),
+            StructField("id", LongType(), True)
+        ])))
     ])
-
 
     events_df = events_df \
         .withColumn("event_time", from_unixtime(col("timestamp"), "yyyy-MM-dd HH:mm:ss")) \
         .withColumn("year", year(from_unixtime(col("timestamp")))) \
         .withColumn("payload_json", from_json(col("payload"), payload_schema)) \
-        .withColumn("meta_json", from_json(col("meta"), StructType([
-            StructField("subjects", ArrayType(StructType([
-                StructField("type", StringType(), True),
-                StructField("id", LongType(), True)
-            ]))),
-            StructField("objects", ArrayType(StructType([
-                StructField("type", StringType(), True),
-                StructField("id", LongType(), True)
-            ])))
-        ])))
+        .withColumn("meta_json", from_json(col("meta"), meta_schema))
 
     events_df = events_df.select(
         col("event_id"),
