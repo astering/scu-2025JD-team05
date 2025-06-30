@@ -5,7 +5,7 @@ from pyspark.sql.functions import col, count, sum as _sum, avg, explode, collect
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, ArrayType
 
 if __name__ == "__main__":
-    if len(sys.argv) != 8:
+    if len(sys.argv) != 9:
         print("""
         Usage: user_image_to_mysql.py <user_file> <session_file> <track_file> <mysql_url> <mysql_user> <mysql_password> <mysql_driver> <mysql_target_table>
         Example: user_image_to_mysql.py users.idomaar sessions.idomaar tracks.idomaar jdbc:mysql://host:port/db_name user password com.mysql.jdbc.Driver user_image
