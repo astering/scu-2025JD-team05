@@ -67,19 +67,8 @@ if __name__ == "__main__":
         print("Applying transformation logic...")
 
         # 先解析
-        parsed_df = ods_df.withColumn("parsed_json", from_json(col("json_body"), music_schema))
-
-        # # 获取所有字段名，将斜杠替换为下划线
-        # old_fields = parsed_df.select("parsed_json.*").schema.names
-        # new_fields = [f.replace("/", "_") for f in old_fields]
-
-        # # 构造 select 语句，重命名所有字段
-        # select_exprs = [
-        #     f"parsed_json.`{old}` as `{new}`" if old != new else f"parsed_json.`{old}`"
-        #     for old, new in zip(old_fields, new_fields)
-        # ]
-
-        # dw_df = parsed_df.selectExpr(*select_exprs)
+        parsed_df = ods_df.withColumn("parsed_json", from_json(col("json_body"), music_schema)) \
+            .select("parsed_json.*")
 
         # 没有斜杠，无需处理
         dw_df = parsed_df
@@ -98,19 +87,9 @@ if __name__ == "__main__":
         # 下面sql表内容不重要，会被覆写
         create_table_sql = f"""
                 CREATE TABLE IF NOT EXISTS {dw_table_name} (
-                    business_id      string,
-                    name             string,
-                    address          string,
-                    city             string,
-                    state            string,
-                    postal_code  string,
                     latitude     float,
-                    longitude    float,
-                    stars        float,
                     review_count int,
                     is_open      tinyint,
-                    attributes   string,
-                    categories   string,
                     hours        string
                 )
                 """
