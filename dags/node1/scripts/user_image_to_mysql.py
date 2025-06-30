@@ -132,10 +132,20 @@ if __name__ == "__main__":
         ).withColumn("top_tags", col("tag_list").cast("string"))
 
         # 6. 合并所有数据
-        final_df = user_df.join(session_agg_df, on="user_id", how="left") \
-                          .join(top_tags_df.select("user_id", "top_tags"), on="user_id", how="left")
+        session_agg_df = session_agg_df.fillna({
+            "session_count": 0,
+            "total_play_time": 0,
+            "avg_session_time": 0,
+        })
 
-        print("Final Data Preview:")
+        top_tags_df = top_tags_df.fillna({
+            "top_tags": "[]",  # 或者给定一个默认标签列表
+        })
+
+        final_df = user_df.join(session_agg_df, on="user_id", how="left") \
+            .join(top_tags_df.select("user_id", "top_tags"), on="user_id", how="left")
+
+        # 调试输出中间数据
         final_df.show(10, truncate=False)
 
         # 7. 写入 MySQL
