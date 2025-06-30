@@ -3,7 +3,7 @@ import json
 import urllib.parse
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
-    col, from_json, explode, lit, floor, when, row_number, udf, array
+    col, from_json, explode, lit, floor, when, row_number, udf, array, create_map
 )
 from pyspark.sql.types import *
 from pyspark.sql.window import Window

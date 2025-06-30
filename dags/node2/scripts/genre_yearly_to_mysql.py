@@ -2,19 +2,24 @@ import sys
 import urllib.parse
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
-    col, from_unixtime, floor, from_json, explode, when, lit, udf, row_number, size, array, struct
+    col, from_unixtime, size, when, array, create_map, lit, explode, floor,
+    row_number, udf, from_json
 )
-from pyspark.sql.types import (
-    StructType, StructField, StringType, IntegerType, LongType, ArrayType, MapType
-)
+from pyspark.sql.types import *
 from pyspark.sql.window import Window
 
-decode_udf = udf(lambda s: urllib.parse.unquote(s) if s else "-1", StringType())
+def decode_url(s):
+    try:
+        return urllib.parse.unquote(s) if s else "-1"
+    except:
+        return "-1"
+
+decode_udf = udf(decode_url, StringType())
 
 if __name__ == "__main__":
-    if len(sys.argv) != 10:
+    if len(sys.argv) != 9:
         print("""
-        Usage: genre_rank_by_decade_to_mysql.py <events_path> <users_path> <tracks_path> <tags_path> <mysql_url> <mysql_user> <mysql_password> <mysql_driver> <target_table>
+        Usage: genre_yearly_to_mysql.py <events_path> <users_path> <tracks_path> <tags_path> <mysql_url> <mysql_user> <mysql_password> <mysql_driver> <target_table>
         """, file=sys.stderr)
         sys.exit(-1)
 
@@ -78,6 +83,7 @@ if __name__ == "__main__":
         StructField("meta", StringType(), True)
     ])
 
+    # 保持tags为 ARRAY<MAP<STRING, STRING>>
     track_meta_schema = StructType([
         StructField("tags", ArrayType(MapType(StringType(), StringType())), True)
     ])
@@ -88,12 +94,12 @@ if __name__ == "__main__":
             col("meta_json.tags").isNotNull() & (size(col("meta_json.tags")) > 0),
             col("meta_json.tags")
         ).otherwise(
-            array(struct(lit("tag").alias("type"), lit("-1").alias("id")))
+            array(create_map(lit("type"), lit("tag"), lit("id"), lit("-1")))
         )) \
         .withColumn("tag_id", explode(col("tag_ids"))) \
         .select(
             "track_id",
-            col("tag_id.id").cast(LongType()).alias("tag_id")
+            col("tag_id")["id"].cast(LongType()).alias("tag_id")
         )
 
     # === 4. Load tag ID → tag name mapping ===
@@ -126,6 +132,8 @@ if __name__ == "__main__":
 
     # === 6. Group by birth_decade + tag and rank top 10 ===
     from pyspark.sql.functions import count
+    from pyspark.sql.window import Window
+    from pyspark.sql.functions import row_number
 
     genre_count = joined_df.groupBy("birth_decade", "tag") \
         .agg(count("*").alias("play_count"))

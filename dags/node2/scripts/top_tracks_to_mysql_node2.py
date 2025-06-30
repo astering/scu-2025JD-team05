@@ -2,7 +2,7 @@ import sys
 import urllib.parse
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, row_number, from_json, udf
+from pyspark.sql.functions import col, row_number, from_json, udf, when, lit
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, ArrayType, LongType
 from pyspark.sql.window import Window
 
@@ -26,6 +26,7 @@ if __name__ == "__main__":
 
     decode_udf = udf(lambda s: urllib.parse.unquote(s) if s else s, StringType())
 
+    # === Track schema ===
     track_schema = StructType([
         StructField("event_type", StringType(), True),
         StructField("track_id", LongType(), True),
@@ -53,16 +54,7 @@ if __name__ == "__main__":
         StructField("tags", ArrayType(StringType()))
     ])
 
-    person_schema = StructType([
-        StructField("event_type", StringType(), True),
-        StructField("id", LongType(), True),
-        StructField("ignore", IntegerType(), True),
-        StructField("payload", StringType(), True),
-        StructField("meta", StringType(), True)
-    ])
-    album_schema = person_schema
-
-    # === 解析 track 文件 ===
+    # === Read and parse track file ===
     track_raw = spark.read.option("delimiter", "\t").schema(track_schema).csv(track_path)
     track_df = track_raw \
         .withColumn("payload_json", from_json(col("payload"), json_payload_schema)) \
@@ -71,7 +63,11 @@ if __name__ == "__main__":
             "track_id",
             col("payload_json.duration").alias("duration"),
             col("payload_json.playcount").alias("playcount"),
-            col("payload_json.MBID").alias("track_mbid"),
+            # 修复 MBID 为空统一为 NULL
+            when(
+                (col("payload_json.MBID").isNull()) | (col("payload_json.MBID") == ""),
+                lit("NULL")
+            ).otherwise(col("payload_json.MBID")).alias("track_mbid"),
             col("payload_json.name").alias("title"),
             col("meta_json.artists")[0]["id"].alias("artist_id"),
             col("meta_json.albums")[0]["id"].alias("album_id")
@@ -87,7 +83,7 @@ if __name__ == "__main__":
     top_tracks = track_df.withColumn("rank", row_number().over(window_spec)) \
                          .filter("rank <= 100")
 
-    # 解析 artist 和 album 名称
+    # === Artist & Album 解析 ===
     def extract_name(df, id_col="id"):
         return df.withColumn("payload_json", from_json(col("payload"), StructType([
             StructField("MBID", StringType(), True),
@@ -96,6 +92,15 @@ if __name__ == "__main__":
             col(id_col),
             col("payload_json.name").alias("name")
         )
+
+    person_schema = StructType([
+        StructField("event_type", StringType(), True),
+        StructField("id", LongType(), True),
+        StructField("ignore", IntegerType(), True),
+        StructField("payload", StringType(), True),
+        StructField("meta", StringType(), True)
+    ])
+    album_schema = person_schema
 
     person_raw = spark.read.option("delimiter", "\t").schema(person_schema).csv(person_path)
     album_raw = spark.read.option("delimiter", "\t").schema(album_schema).csv(album_path)
@@ -108,11 +113,12 @@ if __name__ == "__main__":
     album_df = album_df.withColumn("album_name", decode_udf(col("album_name")))
     top_tracks = top_tracks.withColumn("title", decode_udf(col("title")))
 
-    # Join
+    # Join with artist and album
     final_df = top_tracks \
         .join(person_df, top_tracks.artist_id == person_df.id, how="left").drop(person_df.id) \
         .join(album_df, top_tracks.album_id == album_df.id, how="left").drop(album_df.id)
 
+    # Select final columns
     final_df = final_df.selectExpr(
         "cast(rank as BIGINT)",
         "cast(track_id as BIGINT)",
@@ -126,6 +132,11 @@ if __name__ == "__main__":
         "cast(album_name as STRING)"
     )
 
+    # === 输出前10行调试 ===
+    print("Preview of top 10 tracks:")
+    final_df.show(10, truncate=False)
+
+    # === 写入 MySQL ===
     final_df.write \
         .format("jdbc") \
         .option("url", mysql_url) \
