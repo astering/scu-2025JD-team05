@@ -17,7 +17,7 @@ def decode_url(s):
 decode_udf = udf(decode_url, StringType())
 
 if __name__ == "__main__":
-    if len(sys.argv) != 9:
+    if len(sys.argv) != 10:
         print("""
         Usage: genre_yearly_to_mysql.py <events_path> <users_path> <tracks_path> <tags_path> <mysql_url> <mysql_user> <mysql_password> <mysql_driver> <target_table>
         """, file=sys.stderr)
