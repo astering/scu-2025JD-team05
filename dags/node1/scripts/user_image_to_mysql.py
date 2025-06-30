@@ -55,11 +55,24 @@ if __name__ == "__main__":
                 parts = line.split("\t")
                 if len(parts) < 5:
                     return None
-                user_id = int(json.loads(parts[4])['subjects'][0]['id'])
-                session_duration = int(json.loads(parts[3])['playtime'])
+                user_json = json.loads(parts[4])
+                playtime_json = json.loads(parts[3])
+
+                # 提取 user_id
+                subjects = user_json.get("subjects", [])
+                if not subjects or "id" not in subjects[0]:
+                    return None
+                user_id = int(subjects[0]["id"])
+
+                # 提取 session 时长
+                session_duration = int(playtime_json.get("playtime", 0))
+                if session_duration <= 0:
+                    return None  #丢弃无效 session
+
                 return (user_id, session_duration)
             except Exception as e:
                 return None
+
 
         session_rdd = spark.sparkContext.textFile(session_file).map(parse_session).filter(lambda x: x is not None)
         session_schema = StructType([
