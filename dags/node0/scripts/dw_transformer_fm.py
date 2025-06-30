@@ -30,19 +30,15 @@ if __name__ == "__main__":
             StructField("artist", StringType(), True),
             StructField("timestamp", StringType(), True),
             StructField("similars", ArrayType(ArrayType(
-                # Each element is [track_id, score]
-                # track_id: string, score: double
                 StructType([
-                    StructField("0", StringType(), True),
-                    StructField("1", DoubleType(), True)
+                    StructField("track_id", StringType(), True),
+                    StructField("score", DoubleType(), True)
                 ])
             )), True),
             StructField("tags", ArrayType(ArrayType(
-                # Each element is [tag, value]
-                # tag: string, value: string (could be int, but sample is string)
                 StructType([
-                    StructField("0", StringType(), True),
-                    StructField("1", IntegerType(), True)
+                    StructField("tag", StringType(), True),
+                    StructField("value", IntegerType(), True)
                 ])
             )), True),
             StructField("track_id", StringType(), True),
@@ -56,17 +52,20 @@ if __name__ == "__main__":
         # 先解析
         parsed_df = ods_df.withColumn("parsed_json", from_json(col("json_body"), music_schema))
 
-        # 获取所有字段名，将斜杠替换为下划线
-        old_fields = parsed_df.select("parsed_json.*").schema.names
-        new_fields = [f.replace("/", "_") for f in old_fields]
+        # # 获取所有字段名，将斜杠替换为下划线
+        # old_fields = parsed_df.select("parsed_json.*").schema.names
+        # new_fields = [f.replace("/", "_") for f in old_fields]
 
-        # 构造 select 语句，重命名所有字段
-        select_exprs = [
-            f"parsed_json.`{old}` as `{new}`" if old != new else f"parsed_json.`{old}`"
-            for old, new in zip(old_fields, new_fields)
-        ]
+        # # 构造 select 语句，重命名所有字段
+        # select_exprs = [
+        #     f"parsed_json.`{old}` as `{new}`" if old != new else f"parsed_json.`{old}`"
+        #     for old, new in zip(old_fields, new_fields)
+        # ]
 
-        dw_df = parsed_df.selectExpr(*select_exprs)
+        # dw_df = parsed_df.selectExpr(*select_exprs)
+
+        # 没有斜杠，无需处理
+        dw_df = parsed_df
 
         # 4. 数据清洗与处理
         # 自己完成
