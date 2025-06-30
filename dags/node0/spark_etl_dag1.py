@@ -19,14 +19,14 @@ SPARK_SCRIPTS_PATH = "airflow/dags/node0/scripts"
 
 HDFS_RAW_DATA_PATH = "hdfs://node-master:9000/mir/millionsongsubset" # 末尾不能有斜杠
 LOCAL_FILE_DATA_PATH = "~/mir/millionsongsubset" # 末尾不能有斜杠
-FILE_NAME = "lastfm_subset.json" # 前面不能有斜杠
+FILE_NAME = "msd_summary_file.json" # 前面不能有斜杠
 
 # Hive 数据库和表名
 ODS_DB = "ods"
 DW_DB = "dw"
 
-ODS_TABLE = "ods_music_fm"
-DW_TABLE = "dw_music_fm"
+ODS_TABLE = "ods_music_msd"
+DW_TABLE = "dw_music_msd"
 
 ODS_TABLE_FQN = f"{ODS_DB}.{ODS_TABLE}"  # FQN: Fully Qualified Name
 DW_TABLE_FQN = f"{DW_DB}.{DW_TABLE}"
@@ -48,7 +48,7 @@ mysql_password = mysql_conn.password
 
 with DAG(
         # dag_id="spark_etl_hdfs_to_hive_dw",
-        dag_id="spark_etl_mir_data_load",
+        dag_id="spark_etl_mir_data_load_msd",
         start_date=pendulum.datetime(2025, 1, 1, tz="UTC"),
         catchup=False,
         schedule=None,  # 或者 "0 2 * * *" 表示每天凌晨2点运行
@@ -99,7 +99,7 @@ with DAG(
     dw_transform_spark_job = SparkSubmitOperator(
         task_id="spark_transform_to_dw_hive",
         conn_id="spark_default",
-        application=f"{SPARK_SCRIPTS_PATH}/dw_transformer_fm.py",
+        application=f"{SPARK_SCRIPTS_PATH}/dw_transformer.py",
         application_args=[ODS_TABLE_FQN, DW_TABLE_FQN],
         conf={"spark.driver.memory": "2g"},
         executor_cores=1,
