@@ -13,7 +13,7 @@ ALBUM_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/albums.idomaar"
 
 MYSQL_CONN_ID = "mysql_ads_db2"
 MYSQL_TARGET_TABLE = "top_track"
-MYSQL_DRIVER = "com.mysql.jdbc.Driver"
+MYSQL_DRIVER = "com.mysql.cj.jdbc.Driver"
 
 # 读取 mysql 连接信息
 mysql_conn = BaseHook.get_connection(MYSQL_CONN_ID)

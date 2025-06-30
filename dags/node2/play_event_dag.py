@@ -6,16 +6,18 @@ from airflow.operators.empty import EmptyOperator
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from airflow.hooks.base import BaseHook
 
+# 路径与参数配置
 SPARK_SCRIPTS_PATH = "airflow/dags/node2/scripts"
 EVENTS_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/relations/events.idomaar"
 USERS_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/users.idomaar"
 TRACKS_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/tracks.idomaar"
-LASTFM_DIR = "hdfs://node-master:9000/mir/lastfm_subset"
+TAGS_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/tags.idomaar"
 
 MYSQL_CONN_ID = "mysql_ads_db2"
 MYSQL_TABLE = "play_event"
-MYSQL_DRIVER = "com.mysql.jdbc.Driver"
+MYSQL_DRIVER = "com.mysql.cj.jdbc.Driver"
 
+# 读取 MySQL 连接信息
 mysql_conn = BaseHook.get_connection(MYSQL_CONN_ID)
 mysql_url = f"jdbc:mysql://{mysql_conn.host}:{mysql_conn.port}/{mysql_conn.schema}"
 mysql_user = mysql_conn.login
@@ -38,7 +40,7 @@ with DAG(
             EVENTS_PATH,
             USERS_PATH,
             TRACKS_PATH,
-            LASTFM_DIR,
+            TAGS_PATH,  # 从 tags.idomaar 提取标签
             mysql_url,
             mysql_user,
             mysql_password,
