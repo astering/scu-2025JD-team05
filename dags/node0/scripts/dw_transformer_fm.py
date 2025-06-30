@@ -1,7 +1,7 @@
 import sys
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, from_json
+from pyspark.sql.functions import col, from_json, expr
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType, BooleanType
 from pyspark.sql.types import MapType, ArrayType
 
@@ -29,18 +29,8 @@ if __name__ == "__main__":
         music_schema = StructType([
             StructField("artist", StringType(), True),
             StructField("timestamp", StringType(), True),
-            StructField("similars", ArrayType(ArrayType(
-                StructType([
-                    StructField("track_id", StringType(), True),
-                    StructField("score", DoubleType(), True)
-                ])
-            )), True),
-            StructField("tags", ArrayType(ArrayType(
-                StructType([
-                    StructField("tag", StringType(), True),
-                    StructField("value", IntegerType(), True)
-                ])
-            )), True),
+            StructField("similars", ArrayType(ArrayType(StringType())), True),  # 或 DoubleType
+            StructField("tags", ArrayType(ArrayType(StringType())), True),
             StructField("track_id", StringType(), True),
             StructField("title", StringType(), True)
         ])
@@ -52,23 +42,22 @@ if __name__ == "__main__":
         # 先解析
         parsed_df = ods_df.withColumn("parsed_json", from_json(col("json_body"), music_schema))
 
-        # # 获取所有字段名，将斜杠替换为下划线
-        # old_fields = parsed_df.select("parsed_json.*").schema.names
-        # new_fields = [f.replace("/", "_") for f in old_fields]
-
-        # # 构造 select 语句，重命名所有字段
-        # select_exprs = [
-        #     f"parsed_json.`{old}` as `{new}`" if old != new else f"parsed_json.`{old}`"
-        #     for old, new in zip(old_fields, new_fields)
-        # ]
-
-        # dw_df = parsed_df.selectExpr(*select_exprs)
-
-        # 没有斜杠，无需处理
-        dw_df = parsed_df
+        parsed_df = parsed_df.select("parsed_json.*")
 
         # 4. 数据清洗与处理
-        # 自己完成
+        # 将similars和tags内部数组转为struct数组
+        dw_df = parsed_df \
+            .withColumn(
+                "similars_struct",
+                expr("transform(similars, x -> named_struct('track_id', x[0], 'score', cast(x[1] as double)))")
+            ) \
+            .withColumn(
+                "tags_struct",
+                expr("transform(tags, x -> named_struct('tag', x[0], 'value', cast(x[1] as integer)))")
+            )
+
+        # 你可以选择只保留struct列或保留原始列
+        dw_df = dw_df.drop("similars", "tags").withColumnRenamed("similars_struct", "similars").withColumnRenamed("tags_struct", "tags")
 
         dw_df.show(10)
 
@@ -81,19 +70,9 @@ if __name__ == "__main__":
         # 下面sql表内容不重要，会被覆写
         create_table_sql = f"""
                 CREATE TABLE IF NOT EXISTS {dw_table_name} (
-                    business_id      string,
-                    name             string,
-                    address          string,
-                    city             string,
-                    state            string,
-                    postal_code  string,
                     latitude     float,
-                    longitude    float,
-                    stars        float,
                     review_count int,
                     is_open      tinyint,
-                    attributes   string,
-                    categories   string,
                     hours        string
                 )
                 """
