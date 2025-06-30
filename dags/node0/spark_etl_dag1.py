@@ -10,20 +10,23 @@ from airflow.hooks.base import BaseHook
 # --- 1. 定义常量和变量 ---
 # 确保这些路径对于 Airflow Worker 是可访问的
 # 如果脚本在 HDFS 上，使用 hdfs:///... 路径
-AIRFLOW_HOME = "airflow" # 必须在用户家目录下，前后不能有斜杠
-SPARK_SCRIPTS_PATH = AIRFLOW_HOME + "/dags/node0/scripts"
-# 或者干脆写成：SPARK_SCRIPTS_PATH = "airflow/dags/node0/scripts"
+
+# 启动airflow时终端的路径即为根路径，一般为家目录
+# AIRFLOW_HOME = "airflow" # 以启动终端时的目录为基，前后不能有斜杠
+# SPARK_SCRIPTS_PATH = AIRFLOW_HOME + "/dags/node0/scripts"
+# 或者干脆写成：
+SPARK_SCRIPTS_PATH = "airflow/dags/node0/scripts"
 
 HDFS_RAW_DATA_PATH = "hdfs://node-master:9000/mir/millionsongsubset" # 末尾不能有斜杠
 LOCAL_FILE_DATA_PATH = "~/mir/millionsongsubset" # 末尾不能有斜杠
-FILE_NAME = "msd_summary_file.h5" # 前面不能有斜杠
+FILE_NAME = "msd_summary_file.json" # 前面不能有斜杠
 
 # Hive 数据库和表名
 ODS_DB = "ods"
 DW_DB = "dw"
 
-ODS_TABLE = "ods_music"
-DW_TABLE = "dw_music"
+ODS_TABLE = "ods_music_msd"
+DW_TABLE = "dw_music_msd"
 
 ODS_TABLE_FQN = f"{ODS_DB}.{ODS_TABLE}"  # FQN: Fully Qualified Name
 DW_TABLE_FQN = f"{DW_DB}.{DW_TABLE}"
@@ -45,7 +48,7 @@ mysql_password = mysql_conn.password
 
 with DAG(
         # dag_id="spark_etl_hdfs_to_hive_dw",
-        dag_id="spark_etl_mir_data_load",
+        dag_id="spark_etl_mir_data_load_msd",
         start_date=pendulum.datetime(2025, 1, 1, tz="UTC"),
         catchup=False,
         schedule=None,  # 或者 "0 2 * * *" 表示每天凌晨2点运行
@@ -81,7 +84,7 @@ with DAG(
     ods_load_spark_job = SparkSubmitOperator(
         task_id="spark_load_to_ods_hive",
         conn_id="spark_default",  # 引用在 Airflow UI 中配置的连接
-        application=f"{SPARK_SCRIPTS_PATH}/ods_loader_h5.py",
+        application=f"{SPARK_SCRIPTS_PATH}/ods_loader.py",
         application_args=[f"{HDFS_RAW_DATA_PATH}/{FILE_NAME}", ODS_TABLE_FQN],
         # Spark 应用的配置
         conf={"spark.driver.memory": "2g"},
@@ -128,7 +131,7 @@ with DAG(
     end = EmptyOperator(task_id="end")
 
     # --- 5. 定义任务依赖关系 ---
-    start >> ods_load_spark_job >> dw_transform_spark_job >> end
-    # start >> upload_to_hdfs >> ods_load_spark_job >> dw_transform_spark_job >> end
+    # start >> ods_load_spark_job >> dw_transform_spark_job >> end
+    start >> upload_to_hdfs >> ods_load_spark_job >> dw_transform_spark_job >> end
     # start >> upload_to_hdfs >> ods_load_spark_job >> dw_transform_spark_job >> load_result_to_mysql >> end
     # start >> load_sum_music_to_mysql >> end

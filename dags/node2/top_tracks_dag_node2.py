@@ -6,14 +6,14 @@ from airflow.operators.empty import EmptyOperator
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from airflow.hooks.base import BaseHook
 
-SPARK_SCRIPTS_PATH = "airflow/dags/node2/scripts/top_tracks_to_mysql"
+SPARK_SCRIPTS_PATH = "airflow/dags/node2/scripts"
 TRACK_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/tracks.idomaar"
 PERSON_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/persons.idomaar"
 ALBUM_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/albums.idomaar"
 
 MYSQL_CONN_ID = "mysql_ads_db2"
 MYSQL_TARGET_TABLE = "top_track"
-MYSQL_DRIVER = "com.mysql.jdbc.Driver"
+MYSQL_DRIVER = "com.mysql.cj.jdbc.Driver"
 
 # 读取 mysql 连接信息
 mysql_conn = BaseHook.get_connection(MYSQL_CONN_ID)
@@ -32,7 +32,7 @@ with DAG(
 
     load_top_tracks = SparkSubmitOperator(
         task_id="spark_top_tracks_to_mysql",
-        application=f"{SPARK_SCRIPTS_PATH}/top_tracks_to_mysql.py",
+        application=f"{SPARK_SCRIPTS_PATH}/top_tracks_to_mysql_node2.py",
         conn_id="spark_default",
         application_args=[
             TRACK_PATH,

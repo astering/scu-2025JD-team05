@@ -1,41 +1,29 @@
 import sys
-import os
-import json
 import urllib.parse
-from datetime import datetime
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, from_unixtime, year, explode, lit, udf
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, LongType
+from pyspark.sql.functions import (
+    col, from_unixtime, floor, from_json, explode, when, lit, udf, row_number
+)
+from pyspark.sql.types import (
+    StructType, StructField, StringType, IntegerType, LongType, ArrayType, MapType
+)
+from pyspark.sql.window import Window
 
-def extract_tags_map(base_dir):
-    tags_map = {}
-    for root, _, files in os.walk(base_dir):
-        for file in files:
-            if file.endswith(".json"):
-                try:
-                    with open(os.path.join(root, file), 'r') as f:
-                        data = json.load(f)
-                        title = urllib.parse.unquote(data.get("title", "NULL"))
-                        tags = [t[0] for t in data.get("tags", []) if len(t) > 0]
-                        tags_map[title] = tags
-                except Exception:
-                    continue
-    return tags_map
+decode_udf = udf(lambda s: urllib.parse.unquote(s) if s else "-1", StringType())
 
 if __name__ == "__main__":
-    if len(sys.argv) != 8:
+    if len(sys.argv) != 10:
         print("""
-        Usage: genre_yearly_to_mysql.py <event_path> <track_path> <lastfm_path> <mysql_url> <mysql_user> <mysql_password> <mysql_driver> <target_table>
+        Usage: genre_rank_by_decade_to_mysql.py <events_path> <users_path> <tracks_path> <tags_path> <mysql_url> <mysql_user> <mysql_password> <mysql_driver> <target_table>
         """, file=sys.stderr)
         sys.exit(-1)
 
-    event_path, track_path, lastfm_path, mysql_url, mysql_user, mysql_password, mysql_driver, target_table = sys.argv[1:]
+    (events_path, users_path, tracks_path, tags_path,
+     mysql_url, mysql_user, mysql_password, mysql_driver, target_table) = sys.argv[1:]
 
-    spark = SparkSession.builder.appName("GenreYearlyStat").getOrCreate()
+    spark = SparkSession.builder.appName("GenreRankByDecade").getOrCreate()
 
-    decode_udf = udf(lambda s: urllib.parse.unquote(s) if s else "NULL", StringType())
-
-    # === 1. Load events ===
+    # === 1. Load event data ===
     event_schema = StructType([
         StructField("event_type", StringType(), True),
         StructField("event_id", LongType(), True),
@@ -44,45 +32,44 @@ if __name__ == "__main__":
         StructField("meta", StringType(), True)
     ])
 
-    events_df = spark.read.option("delimiter", "\t").schema(event_schema).csv(event_path)
-    events_df = events_df.filter(col("event_type") == "event.play")
-
-    # 解析字段
-    from pyspark.sql.functions import from_json
     payload_schema = StructType([StructField("playtime", LongType(), True)])
     meta_schema = StructType([
-        StructField("subjects",
-            StructType([StructField("type", StringType(), True), StructField("id", LongType(), True)])),
-        StructField("objects",
-            StructType([StructField("type", StringType(), True), StructField("id", LongType(), True)])
+        StructField("subjects", ArrayType(MapType(StringType(), StringType()))),
+        StructField("objects", ArrayType(MapType(StringType(), StringType())))
     ])
 
-
-    events_df = events_df \
+    events_df = spark.read.option("delimiter", "\t").schema(event_schema).csv(events_path) \
+        .filter(col("event_type") == "event.play") \
         .withColumn("event_time", from_unixtime(col("timestamp"), "yyyy-MM-dd HH:mm:ss")) \
-        .withColumn("year", year(from_unixtime(col("timestamp")))) \
         .withColumn("payload_json", from_json(col("payload"), payload_schema)) \
-        .withColumn("meta_json", from_json(col("meta"), StructType([
-            StructField("subjects", ArrayType(StructType([
-                StructField("type", StringType(), True),
-                StructField("id", LongType(), True)
-            ]))),
-            StructField("objects", ArrayType(StructType([
-                StructField("type", StringType(), True),
-                StructField("id", LongType(), True)
-            ])))
-        ])))
+        .withColumn("meta_json", from_json(col("meta"), meta_schema)) \
+        .select(
+            "event_id", "event_time",
+            col("payload_json.playtime").alias("play_time"),
+            col("meta_json.subjects")[0]["id"].cast(LongType()).alias("user_id"),
+            col("meta_json.objects")[0]["id"].cast(LongType()).alias("track_id")
+        )
 
-    events_df = events_df.select(
-        col("event_id"),
-        col("event_time"),
-        col("year"),
-        col("payload_json.playtime").alias("play_time"),
-        col("meta_json.subjects")[0]["id"].alias("user_id"),
-        col("meta_json.objects")[0]["id"].alias("track_id")
-    )
+    # === 2. Load user data and compute birth decade ===
+    user_schema = StructType([
+        StructField("event_type", StringType(), True),
+        StructField("user_id", LongType(), True),
+        StructField("ignore", IntegerType(), True),
+        StructField("payload", StringType(), True),
+        StructField("meta", StringType(), True)
+    ])
+    user_payload_schema = StructType([
+        StructField("age", IntegerType(), True)
+    ])
 
-    # === 2. Load track names ===
+    users_df = spark.read.option("delimiter", "\t").schema(user_schema).csv(users_path) \
+        .withColumn("payload_json", from_json(col("payload"), user_payload_schema)) \
+        .select("user_id", col("payload_json.age").alias("age")) \
+        .filter(col("age").isNotNull())
+
+    users_df = users_df.withColumn("birth_decade", floor((lit(2025) - col("age")) / 10) * 10)
+
+    # === 3. Load track data and extract tag IDs ===
     track_schema = StructType([
         StructField("event_type", StringType(), True),
         StructField("track_id", LongType(), True),
@@ -91,27 +78,63 @@ if __name__ == "__main__":
         StructField("meta", StringType(), True)
     ])
 
-    track_df = spark.read.option("delimiter", "\t").schema(track_schema).csv(track_path)
-    track_df = track_df.withColumn("payload_json", from_json(col("payload"), StructType([
-        StructField("name", StringType(), True)
-    ])))
-    track_df = track_df.select("track_id", decode_udf(col("payload_json.name")).alias("track_name"))
+    track_meta_schema = StructType([
+        StructField("tags", ArrayType(MapType(StringType(), StringType())), True)
+    ])
 
-    # === 3. Load LastFM tags ===
-    tags_map = extract_tags_map(lastfm_path)
-    tags_rdd = spark.sparkContext.parallelize(tags_map.items())
-    tags_df = tags_rdd.toDF(["track_name", "tags"])
+    track_df = spark.read.option("delimiter", "\t").schema(track_schema).csv(tracks_path) \
+        .withColumn("meta_json", from_json(col("meta"), track_meta_schema)) \
+        .withColumn("tag_ids", when(
+            col("meta_json.tags").isNotNull() & (col("meta_json.tags") != []),
+            col("meta_json.tags")
+        ).otherwise(lit([{"type": "tag", "id": "-1"}]))) \
+        .withColumn("tag_id", explode(col("tag_ids"))) \
+        .select(
+            "track_id",
+            col("tag_id.id").cast(LongType()).alias("tag_id")
+        )
 
-    # === 4. Join events with track and tags ===
-    events_with_names = events_df.join(track_df, on="track_id", how="left")
-    events_with_tags = events_with_names.join(tags_df, on="track_name", how="left")
+    # === 4. Load tag ID → tag name mapping ===
+    tag_schema = StructType([
+        StructField("event_type", StringType(), True),
+        StructField("tag_id", LongType(), True),
+        StructField("ignore", IntegerType(), True),
+        StructField("payload", StringType(), True),
+        StructField("meta", StringType(), True)
+    ])
 
-    exploded_df = events_with_tags.withColumn("tag", explode(col("tags")))
+    tag_payload_schema = StructType([
+        StructField("value", StringType(), True),
+        StructField("url", StringType(), True)
+    ])
 
-    result_df = exploded_df.groupBy("year", "tag").count().withColumnRenamed("count", "play_count")
+    tag_df = spark.read.option("delimiter", "\t").schema(tag_schema).csv(tags_path) \
+        .withColumn("payload_json", from_json(col("payload"), tag_payload_schema)) \
+        .select(
+            col("tag_id"),
+            decode_udf(col("payload_json.value")).alias("tag")
+        )
 
-    # === 5. 写入 MySQL ===
-    result_df.write \
+    # === 5. Join events + tracks + tags + users ===
+    joined_df = events_df \
+        .join(track_df, on="track_id", how="left") \
+        .join(tag_df, on="tag_id", how="left") \
+        .join(users_df, on="user_id", how="inner") \
+        .fillna({"tag": "-1"})
+
+    # === 6. Group by birth_decade + tag and rank top 10 ===
+    from pyspark.sql.functions import count
+
+    genre_count = joined_df.groupBy("birth_decade", "tag") \
+        .agg(count("*").alias("play_count"))
+
+    window_spec = Window.partitionBy("birth_decade").orderBy(col("play_count").desc())
+    top_genres = genre_count.withColumn("rank", row_number().over(window_spec)) \
+        .filter(col("rank") <= 10) \
+        .select("birth_decade", "tag", "play_count")
+
+    # === 7. Write to MySQL ===
+    top_genres.write \
         .format("jdbc") \
         .option("url", mysql_url) \
         .option("dbtable", target_table) \
@@ -121,5 +144,5 @@ if __name__ == "__main__":
         .mode("overwrite") \
         .save()
 
-    print("Genre by year statistics successfully written to MySQL.")
+    print("Genre rank by decade statistics successfully written to MySQL.")
     spark.stop()
