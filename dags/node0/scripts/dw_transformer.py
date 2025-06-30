@@ -1,7 +1,7 @@
 import sys
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, from_json
+from pyspark.sql.functions import col, from_json, regexp_replace
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType, BooleanType
 from pyspark.sql.types import MapType, ArrayType
 
@@ -27,39 +27,39 @@ if __name__ == "__main__":
         print(f"Successfully read data from ODS table: {ods_table_name}")
 
         music_schema = StructType([
-            StructField("analysis_sample_rate", IntegerType(), True),
-            StructField("artist_7digitalid", IntegerType(), True),
-            StructField("artist_familiarity", DoubleType(), True),
-            StructField("artist_hotttnesss", DoubleType(), True),
+            StructField("analysis_sample_rate", StringType(), True),
+            StructField("artist_7digitalid", StringType(), True),
+            StructField("artist_familiarity", StringType(), True),
+            StructField("artist_hotttnesss", StringType(), True),
             StructField("artist_id", StringType(), True),
-            StructField("artist_latitude", DoubleType(), True),
+            StructField("artist_latitude", StringType(), True),
             StructField("artist_location", StringType(), True),
-            StructField("artist_longitude", DoubleType(), True),
+            StructField("artist_longitude", StringType(), True),
             StructField("artist_mbid", StringType(), True),
             StructField("artist_name", StringType(), True),
-            StructField("artist_playmeid", IntegerType(), True),
+            StructField("artist_playmeid", StringType(), True),
             StructField("audio_md5", StringType(), True),
-            StructField("danceability", DoubleType(), True),
-            StructField("duration", DoubleType(), True),
-            StructField("end_of_fade_in", DoubleType(), True),
-            StructField("energy", DoubleType(), True),
-            StructField("key", IntegerType(), True),
-            StructField("key_confidence", DoubleType(), True),
-            StructField("loudness", DoubleType(), True),
-            StructField("mode", IntegerType(), True),
-            StructField("mode_confidence", DoubleType(), True),
+            StructField("danceability", StringType(), True),
+            StructField("duration", StringType(), True),
+            StructField("end_of_fade_in", StringType(), True),
+            StructField("energy", StringType(), True),
+            StructField("key", StringType(), True),
+            StructField("key_confidence", StringType(), True),
+            StructField("loudness", StringType(), True),
+            StructField("mode", StringType(), True),
+            StructField("mode_confidence", StringType(), True),
             StructField("release", StringType(), True),
-            StructField("release_7digitalid", IntegerType(), True),
-            StructField("song_hotttnesss", DoubleType(), True),
+            StructField("release_7digitalid", StringType(), True),
+            StructField("song_hotttnesss", StringType(), True),
             StructField("song_id", StringType(), True),
-            StructField("start_of_fade_out", DoubleType(), True),
-            StructField("tempo", DoubleType(), True),
-            StructField("time_signature", IntegerType(), True),
-            StructField("time_signature_confidence", DoubleType(), True),
+            StructField("start_of_fade_out", StringType(), True),
+            StructField("tempo", StringType(), True),
+            StructField("time_signature", StringType(), True),
+            StructField("time_signature_confidence", StringType(), True),
             StructField("title", StringType(), True),
-            StructField("track_7digitalid", IntegerType(), True),
+            StructField("track_7digitalid", StringType(), True),
             StructField("track_id", StringType(), True),
-            StructField("year", IntegerType(), True)
+            StructField("year", StringType(), True)
         ])
 
         # 3. 应用业务转换逻辑
@@ -67,14 +67,49 @@ if __name__ == "__main__":
         print("Applying transformation logic...")
 
         # 先解析
-        parsed_df = ods_df.withColumn("parsed_json", from_json(col("json_body"), music_schema)) \
+        parsed_df = ods_df.withColumn("parsed_json", from_json(col("json_body"), music_schema, {"mode": "PERMISSIVE"})) \
             .select("parsed_json.*")
 
-        # 没有斜杠，无需处理
-        dw_df = parsed_df
-
         # 4. 数据清洗与处理
-        # 自己完成
+        # 手动维护字段类型列表
+        int_fields = [
+            "analysis_sample_rate", "artist_7digitalid", "artist_playmeid", "key",
+            "mode", "release_7digitalid", "time_signature", "track_7digitalid", "year"
+        ]
+        double_fields = [
+            "artist_familiarity", "artist_hotttnesss", "artist_latitude", "artist_longitude",
+            "danceability", "duration", "end_of_fade_in", "energy", "key_confidence",
+            "loudness", "mode_confidence", "song_hotttnesss", "start_of_fade_out",
+            "tempo", "time_signature_confidence"
+        ]
+        # 其余为 string_fields
+        all_fields = [f.name for f in music_schema.fields]
+        string_fields = [f for f in all_fields if f not in int_fields + double_fields]
+
+        cleaned_df = parsed_df
+
+        # 1. StringType 字段：去除 b'' 包裹
+        for field in string_fields:
+            cleaned_df = cleaned_df.withColumn(
+                field,
+                regexp_replace(col(field), r"^b'(.*)'$", r"\1")
+            )
+
+        # 2. IntegerType 字段：去除双引号并转为 int
+        for field in int_fields:
+            cleaned_df = cleaned_df.withColumn(
+                field,
+                regexp_replace(col(field), r'^"(.*)"$', r"\1").cast("int")
+            )
+
+        # 3. DoubleType 字段：去除双引号并转为 double
+        for field in double_fields:
+            cleaned_df = cleaned_df.withColumn(
+                field,
+                regexp_replace(col(field), r'^"(.*)"$', r"\1").cast("double")
+            )
+
+        dw_df = cleaned_df
 
         dw_df.show(10)
 
