@@ -5,7 +5,6 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, desc, sum as _sum
 from pyspark.sql.types import StructType, StructField, LongType, IntegerType, StringType
 
-
 if __name__ == "__main__":
     if len(sys.argv) != 6:
         print("""
