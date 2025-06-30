@@ -2,7 +2,7 @@ import sys
 import json
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, count, sum as _sum, avg, explode, collect_list
-from pyspark.sql.types import StructType, StructField, IntegerType, StringType, ArrayType
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType, ArrayType, DoubleType
 
 if __name__ == "__main__":
     if len(sys.argv) != 9:
@@ -19,15 +19,13 @@ if __name__ == "__main__":
     mysql_user = sys.argv[5]
     mysql_password = sys.argv[6]
     mysql_driver = sys.argv[7]
-    mysql_target_table = "user_image"
+    mysql_target_table = sys.argv[8]
 
-    # 1. 创建 SparkSession
     spark = SparkSession.builder \
         .appName("User Image to MySQL") \
         .getOrCreate()
 
     try:
-        # 2. 读取并解析用户信息
         def parse_user(line):
             try:
                 parts = line.split("\t")
@@ -38,7 +36,7 @@ if __name__ == "__main__":
                 age = int(props.get("age")) if props.get("age") else None
                 gender = props.get("gender", "")
                 return (user_id, age, gender)
-            except Exception as e:
+            except:
                 return None
 
         user_rdd = spark.sparkContext.textFile(user_file).map(parse_user).filter(lambda x: x is not None)
@@ -49,50 +47,49 @@ if __name__ == "__main__":
         ])
         user_df = spark.createDataFrame(user_rdd, user_schema)
 
-        # 3. 读取并解析 sessions
-        def parse_session(line):
+        def parse_session_detail(line):
             try:
                 parts = line.split("\t")
                 if len(parts) < 5:
-                    return None
-                user_json = json.loads(parts[4])
-                playtime_json = json.loads(parts[3])
+                    return []
+                subjects = json.loads(parts[4]).get("subjects", [])
+                objects = json.loads(parts[4]).get("objects", [])
+                play_info = json.loads(parts[3])
 
-                # 提取 user_id
-                subjects = user_json.get("subjects", [])
                 if not subjects or "id" not in subjects[0]:
-                    return None
+                    return []
+
                 user_id = int(subjects[0]["id"])
+                track_entries = []
+                for obj in objects:
+                    if obj.get("type") == "track":
+                        track_id = int(obj.get("id", -1))
+                        playstart = int(obj.get("playstart", 0))
+                        playtime = int(obj.get("playtime", 0))
+                        playratio = float(obj.get("playratio", 0.0))
+                        track_entries.append((user_id, track_id, playstart, playtime, playratio))
+                return track_entries
+            except:
+                return []
 
-                # 提取 session 时长
-                session_duration = int(playtime_json.get("playtime", 0))
-                if session_duration <= 0:
-                    return None  #丢弃无效 session
-
-                return (user_id, session_duration)
-            except Exception as e:
-                return None
-
-
-        session_rdd = spark.sparkContext.textFile(session_file).map(parse_session).filter(lambda x: x is not None)
-        session_schema = StructType([
+        session_detail_rdd = spark.sparkContext.textFile(session_file).flatMap(parse_session_detail).filter(lambda x: x is not None)
+        session_detail_schema = StructType([
             StructField("user_id", IntegerType(), True),
-            StructField("session_time", IntegerType(), True),
+            StructField("track_id", IntegerType(), True),
+            StructField("playstart", IntegerType(), True),
+            StructField("playtime", IntegerType(), True),
+            StructField("playratio", DoubleType(), True),
         ])
-        session_df = spark.createDataFrame(session_rdd, session_schema)
+        session_detail_df = spark.createDataFrame(session_detail_rdd, session_detail_schema)
 
-        session_agg_df = session_df.groupBy("user_id").agg(
-            count("*").alias("session_count"),
-            _sum("session_time").alias("total_play_time"),
-            avg("session_time").alias("avg_session_time")
-        )
+        session_agg_df = session_detail_df.groupBy("user_id").agg(
+            count("track_id").alias("session_count"),
+            _sum("playtime").alias("total_play_time"),
+            avg("playtime").alias("avg_session_time")
+        ).withColumn(
+            "user_type", (col("total_play_time") > 7200).cast("string")
+        ).replace({"true": "\u91cd\u5ea6", "false": "\u8f7b\u5ea6"}, subset=["user_type"])
 
-        session_agg_df = session_agg_df.withColumn(
-            "user_type",
-            (col("total_play_time") > 7200).cast("string")
-        ).replace({"true": "重度", "false": "轻度"}, subset=["user_type"])
-
-        # 4. 读取并解析 tracks，提取标签
         def parse_track(line):
             try:
                 parts = line.split("\t")
@@ -101,10 +98,10 @@ if __name__ == "__main__":
                 track_id = int(parts[1])
                 tag_list = json.loads(parts[4]).get("tags", [])
                 tag_names = [t.get("value", "") for t in tag_list if t.get("value")]
-                if tag_names:  # 只返回有标签的歌曲
+                if tag_names:
                     return (track_id, tag_names)
                 return None
-            except Exception as e:
+            except:
                 return None
 
         track_rdd = spark.sparkContext.textFile(track_file).map(parse_track).filter(lambda x: x is not None)
@@ -114,54 +111,20 @@ if __name__ == "__main__":
         ])
         track_df = spark.createDataFrame(track_rdd, track_schema)
 
-        # 5. 构建 user-track-tag 关系
-        def extract_user_track(line):
-            try:
-                parts = line.split("\t")
-                if len(parts) < 5:
-                    return []
-                user_id = int(json.loads(parts[4])['subjects'][0]['id'])
-                objects = json.loads(parts[4])['objects']
-                return [(user_id, int(obj['id'])) for obj in objects if obj['type'] == 'track']
-            except Exception as e:
-                return []
-
-        user_track_rdd = spark.sparkContext.textFile(session_file).flatMap(extract_user_track).filter(lambda x: x is not None)
-        user_track_schema = StructType([
-            StructField("user_id", IntegerType(), True),
-            StructField("track_id", IntegerType(), True),
-        ])
-        user_track_df = spark.createDataFrame(user_track_rdd, user_track_schema)
-
-        # 用户与标签的映射
-        user_tag_df = user_track_df.join(track_df, on="track_id", how="left") \
+        user_tag_df = session_detail_df.select("user_id", "track_id") \
+            .join(track_df, on="track_id", how="left") \
             .select("user_id", explode("tags").alias("tag")) \
             .groupBy("user_id", "tag").count() \
             .orderBy("user_id", col("count").desc())
 
-        # 获取用户的标签列表
         top_tags_df = user_tag_df.groupBy("user_id").agg(
             collect_list("tag").alias("tag_list")
         ).withColumn("top_tags", col("tag_list").cast("string"))
 
-        # 6. 合并所有数据
-        session_agg_df = session_agg_df.fillna({
-            "session_count": 0,
-            "total_play_time": 0,
-            "avg_session_time": 0,
-        })
-
-        top_tags_df = top_tags_df.fillna({
-            "top_tags": "[]",  # 或者给定一个默认标签列表
-        })
-
-        final_df = user_df.join(session_agg_df, on="user_id", how="left") \
+        final_df = user_df \
+            .join(session_agg_df, on="user_id", how="left") \
             .join(top_tags_df.select("user_id", "top_tags"), on="user_id", how="left")
 
-        # 调试输出中间数据
-        final_df.show(10, truncate=False)
-
-        # 7. 写入 MySQL
         final_df.write \
             .format("jdbc") \
             .option("url", mysql_url) \
