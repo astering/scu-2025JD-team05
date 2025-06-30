@@ -19,14 +19,14 @@ SPARK_SCRIPTS_PATH = "airflow/dags/node0/scripts"
 
 HDFS_RAW_DATA_PATH = "hdfs://node-master:9000/mir/millionsongsubset" # 末尾不能有斜杠
 LOCAL_FILE_DATA_PATH = "~/mir/millionsongsubset" # 末尾不能有斜杠
-FILE_NAME = "msd_summary_file.json" # 前面不能有斜杠
+FILE_NAME = "lastfm_subset.json" # 前面不能有斜杠
 
 # Hive 数据库和表名
 ODS_DB = "ods"
 DW_DB = "dw"
 
-ODS_TABLE = "ods_music"
-DW_TABLE = "dw_music"
+ODS_TABLE = "ods_music_fm"
+DW_TABLE = "dw_music_fm"
 
 ODS_TABLE_FQN = f"{ODS_DB}.{ODS_TABLE}"  # FQN: Fully Qualified Name
 DW_TABLE_FQN = f"{DW_DB}.{DW_TABLE}"
@@ -68,17 +68,17 @@ with DAG(
     # 这个任务演示了数据提取和上传的过程
     # 它会从本地文件目录上传文件到 HDFS，并确保每次运行时都是一样的
 
-    # upload_to_hdfs = BashOperator(
-    #     task_id="upload_source_data_to_hdfs",
-    #     bash_command=f"""
-    #         # 确保 HDFS 目标目录存在，并清理旧文件
-    #         hdfs dfs -mkdir -p {HDFS_RAW_DATA_PATH}
-    #         hdfs dfs -rm -f {HDFS_RAW_DATA_PATH}/{FILE_NAME}
+    upload_to_hdfs = BashOperator(
+        task_id="upload_source_data_to_hdfs",
+        bash_command=f"""
+            # 确保 HDFS 目标目录存在，并清理旧文件
+            hdfs dfs -mkdir -p {HDFS_RAW_DATA_PATH}
+            hdfs dfs -rm -f {HDFS_RAW_DATA_PATH}/{FILE_NAME}
 
-    #         # 上传新文件到 HDFS
-    #         hdfs dfs -put {LOCAL_FILE_DATA_PATH}/{FILE_NAME} {HDFS_RAW_DATA_PATH}/{FILE_NAME}
-    #     """,
-    # )
+            # 上传新文件到 HDFS
+            hdfs dfs -put {LOCAL_FILE_DATA_PATH}/{FILE_NAME} {HDFS_RAW_DATA_PATH}/{FILE_NAME}
+        """,
+    )
 
     # --- 3. 运行 Spark 作业加载数据到 ODS 层 ---
     ods_load_spark_job = SparkSubmitOperator(
@@ -99,7 +99,7 @@ with DAG(
     dw_transform_spark_job = SparkSubmitOperator(
         task_id="spark_transform_to_dw_hive",
         conn_id="spark_default",
-        application=f"{SPARK_SCRIPTS_PATH}/dw_transformer.py",
+        application=f"{SPARK_SCRIPTS_PATH}/dw_transformer_fm.py",
         application_args=[ODS_TABLE_FQN, DW_TABLE_FQN],
         conf={"spark.driver.memory": "2g"},
         executor_cores=1,
@@ -131,7 +131,7 @@ with DAG(
     end = EmptyOperator(task_id="end")
 
     # --- 5. 定义任务依赖关系 ---
-    start >> ods_load_spark_job >> dw_transform_spark_job >> end
-    # start >> upload_to_hdfs >> ods_load_spark_job >> dw_transform_spark_job >> end
+    # start >> ods_load_spark_job >> dw_transform_spark_job >> end
+    start >> upload_to_hdfs >> ods_load_spark_job >> dw_transform_spark_job >> end
     # start >> upload_to_hdfs >> ods_load_spark_job >> dw_transform_spark_job >> load_result_to_mysql >> end
     # start >> load_sum_music_to_mysql >> end
