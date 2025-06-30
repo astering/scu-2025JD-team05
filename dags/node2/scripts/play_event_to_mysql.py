@@ -1,10 +1,10 @@
-# 修改后的 play_event_to_mysql.py：从 tracks.idomaar 中解析 tag_id，再从 tags.idomaar 获取 tag 名称
+# play_event_to_mysql.py：从 tracks.idomaar 中解析 tag_id，再从 tags.idomaar 获取 tag 名称
 
 import sys
 import urllib.parse
 from datetime import datetime
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, from_json, udf, explode
+from pyspark.sql.functions import col, from_json, udf, explode, from_unixtime
 from pyspark.sql.types import *
 
 # 安全 URL 解码函数
@@ -45,9 +45,10 @@ if __name__ == "__main__":
     events_df = events_raw.filter(col("event_type") == "event.play") \
         .withColumn("payload_json", from_json(col("payload"), payload_schema)) \
         .withColumn("meta_json", from_json(col("meta"), meta_schema)) \
+        .withColumn("event_time", from_unixtime(col("timestamp")).cast(TimestampType())) \
         .select(
             col("event_id"),
-            (col("timestamp") * 1000).cast(TimestampType()).alias("event_time"),
+            col("event_time"),
             col("payload_json.playtime").alias("play_time"),
             col("meta_json.subjects")[0]["id"].cast(LongType()).alias("user_id"),
             col("meta_json.objects")[0]["id"].cast(LongType()).alias("track_id")

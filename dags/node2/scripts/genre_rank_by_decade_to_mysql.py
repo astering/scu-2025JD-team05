@@ -3,19 +3,21 @@ import json
 import urllib.parse
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
-    col, from_json, explode, lit, floor, when, row_number
+    col, from_json, explode, lit, floor, when, row_number, udf
 )
 from pyspark.sql.types import *
 from pyspark.sql.window import Window
 
+# 解码URL的简单UDF
 decode_udf = lambda s: urllib.parse.unquote(s) if s else "NULL"
 
 if __name__ == "__main__":
-    if len(sys.argv) != 6:
-        print("Usage: genre_rank_by_decade_to_mysql.py <events_path> <users_path> <tracks_path> <tags_path> <mysql_url>", file=sys.stderr)
+    # 修改为接收9个参数（包含mysql用户名、密码、驱动、目标表）
+    if len(sys.argv) != 10:
+        print("Usage: genre_rank_by_decade_to_mysql.py <events_path> <users_path> <tracks_path> <tags_path> <mysql_url> <mysql_user> <mysql_password> <mysql_driver> <target_table>", file=sys.stderr)
         sys.exit(-1)
 
-    events_path, users_path, tracks_path, tags_path, mysql_url = sys.argv[1:]
+    events_path, users_path, tracks_path, tags_path, mysql_url, mysql_user, mysql_password, mysql_driver, target_table = sys.argv[1:]
 
     spark = SparkSession.builder.appName("GenreRankByDecade").getOrCreate()
 
@@ -102,14 +104,13 @@ if __name__ == "__main__":
     ])
     tags_df = spark.read.option("delimiter", "\t").schema(tag_schema).csv(tags_path)
     tags_df = tags_df.withColumn("payload_json", from_json(col("payload"), tag_payload_schema))
-    tags_df = tags_df.select(
-        col("tag_id"),
-        lit("-1").alias("tag").when(col("tag_id") == -1, lit("-1")).otherwise(
-            udf(lambda s: urllib.parse.unquote(s) if s else "-1", StringType())(col("payload_json.value"))
-        )
-    )
 
-    # 5. Join all
+    # 注册解码UDF
+    decode_udf = udf(lambda s: urllib.parse.unquote(s) if s else "-1", StringType())
+    tags_df = tags_df.withColumn("tag_name", when(col("tag_id") == -1, lit("-1")).otherwise(decode_udf(col("payload_json.value"))))
+    tags_df = tags_df.select(col("tag_id"), col("tag_name").alias("tag"))
+
+    # 5. Join all dataframes
     joined_df = play_events.join(users, "user_id", "inner") \
         .join(tracks_exploded, "track_id", "inner") \
         .join(tags_df, "tag_id", "left") \
@@ -125,13 +126,13 @@ if __name__ == "__main__":
         .filter(col("rank") <= 10) \
         .select("birth_decade", "tag", "play_count")
 
-    # 7. Write results to MySQL (需自行补充MySQL连接参数)
+    # 7. Write results to MySQL
     top_genres.write.format("jdbc") \
         .option("url", mysql_url) \
-        .option("dbtable", "top_genres_by_decade") \
-        .option("user", "your_user") \
-        .option("password", "your_password") \
-        .option("driver", "com.mysql.cj.jdbc.Driver") \
+        .option("dbtable", target_table) \
+        .option("user", mysql_user) \
+        .option("password", mysql_password) \
+        .option("driver", mysql_driver) \
         .mode("overwrite") \
         .save()
 

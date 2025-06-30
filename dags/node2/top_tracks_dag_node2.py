@@ -32,7 +32,7 @@ with DAG(
 
     load_top_tracks = SparkSubmitOperator(
         task_id="spark_top_tracks_to_mysql",
-        application=f"{SPARK_SCRIPTS_PATH}/top_tracks_to_mysql.py",
+        application=f"{SPARK_SCRIPTS_PATH}/top_tracks_to_mysql_node2.py",
         conn_id="spark_default",
         application_args=[
             TRACK_PATH,
