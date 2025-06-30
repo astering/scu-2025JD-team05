@@ -38,7 +38,7 @@ if __name__ == "__main__":
                 age = int(props.get("age")) if props.get("age") else None
                 gender = props.get("gender", "")
                 return (user_id, age, gender)
-            except:
+            except Exception as e:
                 return None
 
         user_rdd = spark.sparkContext.textFile(user_file).map(parse_user).filter(lambda x: x is not None)
@@ -58,7 +58,7 @@ if __name__ == "__main__":
                 user_id = int(json.loads(parts[4])['subjects'][0]['id'])
                 session_duration = int(json.loads(parts[3])['playtime'])
                 return (user_id, session_duration)
-            except:
+            except Exception as e:
                 return None
 
         session_rdd = spark.sparkContext.textFile(session_file).map(parse_session).filter(lambda x: x is not None)
@@ -88,8 +88,10 @@ if __name__ == "__main__":
                 track_id = int(parts[1])
                 tag_list = json.loads(parts[4]).get("tags", [])
                 tag_names = [t.get("value", "") for t in tag_list if t.get("value")]
-                return (track_id, tag_names)
-            except:
+                if tag_names:  # 只返回有标签的歌曲
+                    return (track_id, tag_names)
+                return None
+            except Exception as e:
                 return None
 
         track_rdd = spark.sparkContext.textFile(track_file).map(parse_track).filter(lambda x: x is not None)
@@ -108,7 +110,7 @@ if __name__ == "__main__":
                 user_id = int(json.loads(parts[4])['subjects'][0]['id'])
                 objects = json.loads(parts[4])['objects']
                 return [(user_id, int(obj['id'])) for obj in objects if obj['type'] == 'track']
-            except:
+            except Exception as e:
                 return []
 
         user_track_rdd = spark.sparkContext.textFile(session_file).flatMap(extract_user_track).filter(lambda x: x is not None)
@@ -118,11 +120,13 @@ if __name__ == "__main__":
         ])
         user_track_df = spark.createDataFrame(user_track_rdd, user_track_schema)
 
+        # 用户与标签的映射
         user_tag_df = user_track_df.join(track_df, on="track_id", how="left") \
             .select("user_id", explode("tags").alias("tag")) \
             .groupBy("user_id", "tag").count() \
             .orderBy("user_id", col("count").desc())
 
+        # 获取用户的标签列表
         top_tags_df = user_tag_df.groupBy("user_id").agg(
             collect_list("tag").alias("tag_list")
         ).withColumn("top_tags", col("tag_list").cast("string"))
