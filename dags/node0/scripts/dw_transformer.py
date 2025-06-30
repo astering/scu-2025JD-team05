@@ -92,7 +92,7 @@ if __name__ == "__main__":
         for field in string_fields:
             cleaned_df = cleaned_df.withColumn(
                 field,
-                regexp_replace(col(field), r"^b'(.*)'$", r"\1")
+                regexp_replace(col(field), r"^\"b'(.*)'\"$", r"\1")
             )
 
         # 2. IntegerType 字段：去除双引号并转为 int
