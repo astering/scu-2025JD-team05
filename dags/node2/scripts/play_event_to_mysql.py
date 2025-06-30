@@ -122,6 +122,11 @@ if __name__ == "__main__":
         .join(tags_df, on="tag_id", how="left") \
         .fillna({"user_name": "NULL", "track_name": "NULL", "tag_value": "NULL"})
 
+    # 打印前 10 行结果查看
+    joined_df.select(
+        "event_id", "event_time", "play_time", "user_id", "user_name",
+        "track_id", "track_name", col("tag_value").alias("track_tag")
+    ).show(10, truncate=False)
     # 6. 写入 MySQL
     joined_df.select(
         "event_id", "event_time", "play_time", "user_id", "user_name", "track_id", "track_name", col("tag_value").alias("track_tag")
