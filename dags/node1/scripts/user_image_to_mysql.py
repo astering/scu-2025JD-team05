@@ -52,38 +52,63 @@ if __name__ == "__main__":
         print("=== user_df ===")
         user_df.show(10, truncate=False)
 
+        # 在创建DataFrame前添加验证（临时代码）
+        print("==== 原始数据验证 ====")
+
+        # 检查session文件
+        print("\n1. Session文件前3行:")
+        session_samples = spark.sparkContext.textFile(session_file).take(3)
+        for i, line in enumerate(session_samples):
+            print(f"样本{i + 1}: {line[:200]}...")  # 只打印前200字符防止过长
+
+        # 检查track文件
+        print("\n2. Track文件前3行:")
+        track_samples = spark.sparkContext.textFile(track_file).take(3)
+        for i, line in enumerate(track_samples):
+            print(f"样本{i + 1}: {line[:200]}...")
+
         # 3. 读取并解析 sessions
+        # 在parse_session函数内添加详细日志
         def parse_session(line):
             try:
                 parts = line.split("\t")
                 if len(parts) < 5:
-                    print(f"Session行字段不足: {line}")
+                    print(f"⚠️ 字段不足: 只有{len(parts)}个字段（需要≥5）")
                     return None
 
-                # 解析playtime数据
-                playtime_data = json.loads(parts[3])
-                session_duration = int(playtime_data.get("playtime", 0))
+                print(f"\n原始JSON[3]: {parts[3]}")  # playtime数据
+                print(f"原始JSON[4]: {parts[4]}")  # user/track数据
 
-                # 解析用户数据
+                playtime = json.loads(parts[3])
                 user_data = json.loads(parts[4])
+
+                print(f"解析后playtime: {playtime}")
+                print(f"解析后user_data: {user_data}")
+
                 subjects = user_data.get("subjects", [])
-
-                # 验证并提取用户ID
-                if not subjects or subjects[0].get("type") != "user":
-                    print(f"无效的subjects结构: {user_data}")
+                if not subjects:
+                    print("⚠️ subjects为空")
                     return None
 
-                user_id = int(subjects[0]["id"])
-
-                # 过滤无效session
-                if session_duration <= 0:
-                    print(f"无效的session时长: {session_duration}")
+                first_subject = subjects[0]
+                if "id" not in first_subject:
+                    print(f"⚠️ subject缺少id字段: {first_subject}")
                     return None
 
-                return (user_id, session_duration)
+                user_id = int(first_subject["id"])
+                duration = int(playtime.get("playtime", 0))
+
+                print(f"✅ 成功解析: user_id={user_id}, duration={duration}")
+                return (user_id, duration)
             except Exception as e:
-                print(f"Session解析错误: {str(e)} - 行内容: {line}")
+                print(f"❌ 解析异常: {str(e)}")
                 return None
+
+        # 临时测试解析函数
+        test_line = spark.sparkContext.textFile(session_file).first()
+        print("\n测试parse_session:")
+        parse_session(test_line)
+
 
         session_rdd = spark.sparkContext.textFile(session_file).map(parse_session).filter(lambda x: x is not None)
         session_schema = StructType([
@@ -91,6 +116,19 @@ if __name__ == "__main__":
             StructField("session_time", IntegerType(), True),
         ])
         session_df = spark.createDataFrame(session_rdd, session_schema)
+
+        # 在创建session_df后添加
+        print("\n==== Session DataFrame验证 ====")
+        print(f"有效记录数: {session_df.count()}")
+        if session_df.count() > 0:
+            print("Schema:")
+            session_df.printSchema()
+            print("数据示例:")
+            session_df.show(5, truncate=False)
+        else:
+            # 检查RDD内容
+            print("RDD内容样本:")
+            print(session_rdd.take(5))
 
         session_agg_df = session_df.groupBy("user_id").agg(
             count("*").alias("session_count"),
@@ -213,6 +251,22 @@ if __name__ == "__main__":
         top_tags_df = top_tags_df.fillna({
             "top_tags": "[]",
         })
+
+        # 在final_df创建前添加
+        print("\n==== 用户ID匹配测试 ====")
+
+        # 用户表中的ID
+        user_ids = user_df.select("user_id").distinct()
+        print(f"用户表唯一ID数: {user_ids.count()}")
+
+        # 会话表中的ID
+        session_user_ids = session_agg_df.select("user_id").distinct()
+        print(f"会话表唯一ID数: {session_user_ids.count()}")
+
+        # 检查交集
+        matched_ids = user_ids.intersect(session_user_ids)
+        print(f"匹配的ID数: {matched_ids.count()}")
+        matched_ids.show(5)
 
         final_df = user_df.join(session_agg_df, on="user_id", how="left") \
             .join(top_tags_df.select("user_id", "top_tags"), on="user_id", how="left")
