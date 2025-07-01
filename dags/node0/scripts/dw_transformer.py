@@ -97,14 +97,19 @@ if __name__ == "__main__":
             if s is None:
                 return None
             try:
+                '''无效
                 # 将字符串转换为字节类型，假设原始编码为latin1
-                byte_str = s.encode('ascii')
+                byte_str = s.encode('latin1')
                 # 使用UTF-8解码字节字符串
                 decoded_str = byte_str.decode('utf-8')
+                '''
                 '''无效
                 url_encode_str = s.encode('unicode_escape').decode('utf-8').replace('\\x', '%')
                 decoded_str = parse.unquote(url_encode_str)
                 '''
+                # 下面有效，说明spark在schema匹配时已经把输入固化为字符串，"\x"就是字面内容，和手写str='\x'有区别，后者是转义符
+                url_encode_str = s.replace('\\x', '%')
+                decoded_str = parse.unquote(url_encode_str)
                 return decoded_str
             except Exception as e:
                 print(f"Error decoding string: {e}")
