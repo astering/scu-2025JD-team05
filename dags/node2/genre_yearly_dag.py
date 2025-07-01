@@ -11,7 +11,6 @@ SPARK_SCRIPTS_PATH = "airflow/dags/node2/scripts"
 
 # 数据路径
 EVENT_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/relations/events.idomaar"
-USER_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/users.idomaar"  # 补充用户路径
 TRACK_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/tracks.idomaar"
 TAGS_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/tags.idomaar"
 
@@ -42,7 +41,6 @@ with DAG(
         conn_id="spark_default",
         application_args=[
             EVENT_PATH,
-            USER_PATH,
             TRACK_PATH,
             TAGS_PATH,
             mysql_jdbc_url,
