@@ -12,7 +12,7 @@ PERSON_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/persons.idomaar"
 ALBUM_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/albums.idomaar"
 
 MYSQL_CONN_ID = "mysql_ads_db2"
-MYSQL_TARGET_TABLE = "top_track"
+MYSQL_TARGET_TABLE = "top_track_1"
 MYSQL_DRIVER = "com.mysql.cj.jdbc.Driver"
 
 # 读取 mysql 连接信息
