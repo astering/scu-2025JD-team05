@@ -11,8 +11,11 @@ def parse_idomaar_entity_line(line, expected_type):
         return None
     try:
         entity_id = int(parts[1])
+        create_time = int(parts[2]) if expected_type == "user" else None
         data = json.loads(parts[3])
         data = {k: urllib.parse.unquote(v) if isinstance(v, str) else v for k, v in data.items()}
+        if expected_type == "user":
+            data["create_time"] = create_time
         data[f"{expected_type}_id"] = entity_id
         return data
     except:
@@ -27,10 +30,8 @@ def parse_relation_events_line(line):
         attr = json.loads(parts[3])
         rel = json.loads(parts[4])
         playtime = attr.get("playtime")
-
         user_id = rel.get("subjects", [{}])[0].get("id") if rel.get("subjects") else None
         track_id = rel.get("objects", [{}])[0].get("id") if rel.get("objects") else None
-
         return (timestamp, user_id, track_id, playtime)
     except:
         return None
@@ -103,10 +104,14 @@ def main(entities_base_path, relations_base_path):
             StructField("track_id", LongType())
         ])),
         ("users", "user", StructType([
-            StructField("duration", IntegerType()),
+            StructField("lastfm_username", StringType()),
+            StructField("gender", StringType()),
+            StructField("age", IntegerType()),
+            StructField("country", StringType()),
             StructField("playcount", IntegerType()),
-            StructField("MBID", StringType()),
-            StructField("name", StringType()),
+            StructField("playlists", IntegerType()),
+            StructField("subscribertype", StringType()),
+            StructField("create_time", LongType()),
             StructField("user_id", LongType())
         ]))
     ]
@@ -119,8 +124,6 @@ def main(entities_base_path, relations_base_path):
         create_and_insert_table(spark, df, f"ods_{file}")
 
     # ========== ODS: Relations ==========
-
-    # events.idomaar
     events_path = f"{relations_base_path}/events.idomaar"
     events_rdd = spark.sparkContext.textFile(events_path)
     events_df = spark.createDataFrame(
@@ -134,7 +137,6 @@ def main(entities_base_path, relations_base_path):
     )
     create_and_insert_table(spark, events_df, "ods_events")
 
-    # love.idomaar
     love_path = f"{relations_base_path}/love.idomaar"
     love_df = spark.createDataFrame(
         spark.sparkContext.textFile(love_path).map(parse_relation_love_line).filter(lambda x: x is not None),
@@ -146,7 +148,6 @@ def main(entities_base_path, relations_base_path):
     )
     create_and_insert_table(spark, love_df, "ods_love")
 
-    # sessions.idomaar
     sessions_path = f"{relations_base_path}/sessions.idomaar"
     sessions_df = spark.createDataFrame(
         spark.sparkContext.textFile(sessions_path).map(parse_relation_session_line).filter(lambda x: x is not None),
@@ -159,7 +160,7 @@ def main(entities_base_path, relations_base_path):
     )
     create_and_insert_table(spark, sessions_df, "ods_sessions")
 
-    # ========== DW: 清洗层举例 ==========
+    # ========== DW: 清洗层 ==========
     events_dw = events_df.withColumn("event_time", from_unixtime(col("timestamp")))
     create_and_insert_table(spark, events_dw, "dw_events")
 
@@ -168,6 +169,12 @@ def main(entities_base_path, relations_base_path):
 
     love_dw = love_df.withColumn("value", col("value"))
     create_and_insert_table(spark, love_dw, "dw_love")
+
+    # 新增：users 清洗表，转换注册时间为可读格式
+    users_df = spark.table("ods_users")
+    users_dw = users_df.withColumn("register_time", from_unixtime(col("create_time")))
+    create_and_insert_table(spark, users_dw, "dw_users")
+
     spark.stop()
 
 if __name__ == "__main__":
