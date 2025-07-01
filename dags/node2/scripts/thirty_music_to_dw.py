@@ -84,6 +84,7 @@ def main(entities_base_path, relations_base_path):
             StructField("name", StringType()),
             StructField("person_id", LongType())
         ])),
+
         ("playlist", "playlist", StructType([
             StructField("ID", LongType()),
             StructField("Title", StringType()),
