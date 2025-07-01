@@ -20,7 +20,7 @@ if __name__ == "__main__":
     mysql_driver = sys.argv[7]
     target_table = sys.argv[8]
 
-    spark = SparkSession.builder.appName("TopTracksETL").getOrCreate()
+    spark = SparkSession.builder.appName("TopTracksToMysql").getOrCreate()
 
     # 1. 定义结构
     track_schema = StructType([
