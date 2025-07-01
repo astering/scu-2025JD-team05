@@ -36,7 +36,7 @@ mysql_password = mysql_conn.password
 
 with DAG(
         # dag_id="spark_etl_hdfs_to_hive_dw",
-        dag_id="spark_etl_dw_to_mysql",
+        dag_id="spark_etl_dw_to_mysql2",
         start_date=pendulum.datetime(2025, 1, 1, tz="UTC"),
         catchup=False,
         schedule=None,  # 或者 "0 2 * * *" 表示每天凌晨2点运行
