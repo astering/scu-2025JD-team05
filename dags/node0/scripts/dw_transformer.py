@@ -63,11 +63,10 @@ if __name__ == "__main__":
         ])
 
         # 3. 应用业务转换逻辑
-        # 使用 from_json 将 json_body 列解析成一个名为 'parsed_json' 的 struct 列
         print("Applying transformation logic...")
 
-        # 先解析
-        parsed_df = ods_df.withColumn("parsed_json", from_json(col("json_body"), music_schema, {"mode": "PERMISSIVE"})) \
+        # 使用 from_json 将 json_body 列解析成一个名为 'parsed_json' 的 struct 列
+        parsed_df = ods_df.withColumn("parsed_json", from_json(col("json_body"), music_schema)) \
             .select("parsed_json.*")
 
         # 4. 数据清洗与处理
@@ -82,9 +81,13 @@ if __name__ == "__main__":
             "loudness", "mode_confidence", "song_hotttnesss", "start_of_fade_out",
             "tempo", "time_signature_confidence"
         ]
-        # 其余为 string_fields
-        all_fields = [f.name for f in music_schema.fields]
-        string_fields = [f for f in all_fields if f not in int_fields + double_fields]
+        string_fields = [
+            "artist_id", "artist_location", "artist_mbid", "artist_name",
+            "audio_md5", "release", "song_id", "title", "track_id",
+        ]
+        # # 其余为 string_fields
+        # all_fields = [f.name for f in music_schema.fields]
+        # string_fields = [f for f in all_fields if f not in int_fields + double_fields]
 
         cleaned_df = parsed_df
 
@@ -92,7 +95,11 @@ if __name__ == "__main__":
         for field in string_fields:
             cleaned_df = cleaned_df.withColumn(
                 field,
-                regexp_replace(col(field), r"^b'(.*)'$", r"\1")
+                regexp_replace(col(field), r"^b'|'$", r"")
+                # regexp_replace(col(field), r"^b'(.*)'$", r"\1")
+                # regexp_replace(col(field), r'^b\'(.*)\'$', r"\1")
+                # regexp_replace(col(field), r"^\"b'(.*)'\"$", r"\1")
+                # regexp_replace(col(field), r'^"b\'(.*)\'"$', r"\1")
             )
 
         # 2. IntegerType 字段：去除双引号并转为 int
