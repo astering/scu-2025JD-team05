@@ -45,7 +45,8 @@ if __name__ == "__main__":
                 avg(f"{attribute_list[3]}").alias(f"avg_{attribute_list[3]}"), max(f"{attribute_list[3]}").alias(f"max_{attribute_list[3]}"), min(f"{attribute_list[3]}").alias(f"min_{attribute_list[3]}"),
                 avg(f"{attribute_list[4]}").alias(f"avg_{attribute_list[4]}"), max(f"{attribute_list[4]}").alias(f"max_{attribute_list[4]}"), min(f"{attribute_list[4]}").alias(f"min_{attribute_list[4]}"),
                 count("*").alias("amount")
-            )
+            ) \
+            .orderBy("year")
 
         print("result:")
         analyse_music_df.show()
