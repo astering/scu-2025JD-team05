@@ -159,7 +159,7 @@ def main(entities_base_path, relations_base_path):
     )
     create_and_insert_table(spark, sessions_df, "ods_sessions")
 
-    # ========== DW: ÇåÏ´²ã¾ÙÀı ==========
+    # ========== DW: æ¸…æ´—å±‚ä¸¾ä¾‹ ==========
     events_dw = events_df.withColumn("event_time", from_unixtime(col("timestamp")))
     create_and_insert_table(spark, events_dw, "dw_events")
 
