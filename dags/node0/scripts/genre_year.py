@@ -1,6 +1,8 @@
 import sys
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, count, explode, avg, max, min, sum
+from pyspark.sql import Window
+from pyspark.sql.functions import row_number, lit, when
 
 if __name__ == "__main__":
     # 需要更多参数来连接 MySQL
@@ -42,9 +44,25 @@ if __name__ == "__main__":
         exploded_df = exploded_df.withColumn("value", col("value") / 100)
 
         # 按year和tag聚合，统计每个tag在每年中的总和
-        analyse_music_df = exploded_df.groupBy("year", "tag").agg(
+        # 先按year, tag聚合
+        tag_sum_df = exploded_df.groupBy("year", "tag").agg(
             sum("value").alias("tag_value_sum")
         )
+
+        # 为每年内的tag按tag_value_sum降序排名
+        window_spec = Window.partitionBy("year").orderBy(col("tag_value_sum").desc())
+        ranked_df = tag_sum_df.withColumn("rank", row_number().over(window_spec))
+
+        # 标记前9名，其他为others
+        tagged_df = ranked_df.withColumn(
+            "final_tag",
+            when(col("rank") <= 9, col("tag")).otherwise(lit("others"))
+        )
+
+        # 合并others
+        analyse_music_df = tagged_df.groupBy("year", "final_tag").agg(
+            sum("tag_value_sum").alias("tag_value_sum")
+        ).withColumnRenamed("final_tag", "tag")
 
         print("result:")
         analyse_music_df.show()
