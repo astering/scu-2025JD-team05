@@ -16,7 +16,7 @@ RELATIONS_BASE_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/relations"
 SPARK_SCRIPT = "airflow/dags/node2/scripts/thirtymusic_to_dw.py"
 
 conn = BaseHook.get_connection("hive_dw")
-hive_url = f"jdbc:hive2://{conn.host}:{conn.port}/default"
+hive_url = f"jdbc:hive2://{conn.host}:{conn.port}/dw"
 
 with DAG(
     "thirtymusic_to_dw",
