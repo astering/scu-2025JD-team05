@@ -1,7 +1,6 @@
 from airflow import DAG
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from airflow.operators.empty import EmptyOperator
-from airflow.hooks.base import BaseHook
 import pendulum
 
 default_args = {
@@ -9,14 +8,10 @@ default_args = {
     'catchup': False,
 }
 
-# HDFS路径示例（根据实际路径调整）
 ENTITIES_BASE_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities"
 RELATIONS_BASE_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/relations"
 
 SPARK_SCRIPT = "airflow/dags/node2/scripts/thirtymusic_to_dw.py"
-
-conn = BaseHook.get_connection("hive_dw")
-hive_url = f"jdbc:hive2://{conn.host}:{conn.port}/dw"
 
 with DAG(
     "thirtymusic_to_dw",
@@ -34,9 +29,6 @@ with DAG(
         application_args=[
             ENTITIES_BASE_PATH,
             RELATIONS_BASE_PATH,
-            hive_url,
-            conn.login,
-            conn.password,
         ],
         conf={"spark.driver.memory": "4g"},
         executor_cores=2,
@@ -49,3 +41,4 @@ with DAG(
     end = EmptyOperator(task_id="end")
 
     start >> etl_task >> end
+
