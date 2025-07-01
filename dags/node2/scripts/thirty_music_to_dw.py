@@ -172,7 +172,7 @@ def main(entities_base_path, relations_base_path):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("Usage: thirtymusic_to_dw.py <entities_base_path> <relations_base_path>", file=sys.stderr)
+        print("Usage: thirty_music_to_dw.py <entities_base_path> <relations_base_path>", file=sys.stderr)
         sys.exit(1)
 
     main(sys.argv[1], sys.argv[2])
