@@ -11,19 +11,19 @@ default_args = {
 ENTITIES_BASE_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities"
 RELATIONS_BASE_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/relations"
 
-SPARK_SCRIPT = "airflow/dags/node2/scripts/thirtymusic_to_dw.py"
+SPARK_SCRIPT = "airflow/dags/node2/scripts/thirty_music_to_dw.py"
 
 with DAG(
-    "thirtymusic_to_dw",
+    "thirty_music_to_dw",
     default_args=default_args,
     schedule=None,
-    tags=["spark", "thirtymusic", "dw"],
+    tags=["spark", "thirty_music", "dw"],
 ) as dag:
 
     start = EmptyOperator(task_id="start")
 
     etl_task = SparkSubmitOperator(
-        task_id="spark_thirtymusic_to_dw",
+        task_id="spark_thirty_music_to_dw",
         application=SPARK_SCRIPT,
         conn_id="spark_default",
         application_args=[
@@ -34,7 +34,7 @@ with DAG(
         executor_cores=2,
         executor_memory="4g",
         num_executors=3,
-        name="thirtymusic_to_dw",
+        name="thirty_music_to_dw",
         verbose=True,
     )
 
