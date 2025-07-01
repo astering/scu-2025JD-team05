@@ -107,6 +107,7 @@ if __name__ == "__main__":
             cleaned_df = cleaned_df.withColumn(
                 field,
                 regexp_replace(col(field), r'^"(.*)"$', r"\1").cast("int")
+                # regexp_replace(col(field), r'^"|"$', r"")
             )
 
         # 3. DoubleType 字段：去除双引号并转为 double
@@ -114,6 +115,7 @@ if __name__ == "__main__":
             cleaned_df = cleaned_df.withColumn(
                 field,
                 regexp_replace(col(field), r'^"(.*)"$', r"\1").cast("double")
+                # regexp_replace(col(field), r'^"|"$', r"")
             )
 
         dw_df = cleaned_df
