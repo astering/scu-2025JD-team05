@@ -57,19 +57,32 @@ if __name__ == "__main__":
             try:
                 parts = line.split("\t")
                 if len(parts) < 5:
+                    print(f"Session行字段不足: {line}")
                     return None
-                user_json = json.loads(parts[4])
-                playtime_json = json.loads(parts[3])
 
-                subjects = user_json.get("subjects", [])
-                if not subjects or "id" not in subjects[0]:
+                # 解析playtime数据
+                playtime_data = json.loads(parts[3])
+                session_duration = int(playtime_data.get("playtime", 0))
+
+                # 解析用户数据
+                user_data = json.loads(parts[4])
+                subjects = user_data.get("subjects", [])
+
+                # 验证并提取用户ID
+                if not subjects or subjects[0].get("type") != "user":
+                    print(f"无效的subjects结构: {user_data}")
                     return None
+
                 user_id = int(subjects[0]["id"])
-                session_duration = int(playtime_json.get("playtime", 0))
+
+                # 过滤无效session
                 if session_duration <= 0:
+                    print(f"无效的session时长: {session_duration}")
                     return None
+
                 return (user_id, session_duration)
             except Exception as e:
+                print(f"Session解析错误: {str(e)} - 行内容: {line}")
                 return None
 
         session_rdd = spark.sparkContext.textFile(session_file).map(parse_session).filter(lambda x: x is not None)
@@ -126,10 +139,24 @@ if __name__ == "__main__":
                 parts = line.split("\t")
                 if len(parts) < 5:
                     return []
-                user_id = int(json.loads(parts[4])["subjects"][0]["id"])
-                objects = json.loads(parts[4])["objects"]
-                return [(user_id, int(obj["id"])) for obj in objects if obj["type"] == 'track']
+
+                # 解析用户数据
+                user_data = json.loads(parts[4])
+                subjects = user_data.get("subjects", [])
+
+                # 验证并提取用户ID
+                if not subjects or subjects[0].get("type") != "user":
+                    return []
+
+                user_id = int(subjects[0]["id"])
+
+                # 解析track对象
+                objects = user_data.get("objects", [])
+                return [(user_id, int(obj["id"]))
+                        for obj in objects
+                        if obj.get("type") == 'track' and isinstance(obj.get("id"), (int, str))]
             except Exception as e:
+                print(f"User-track关系提取错误: {str(e)} - 行内容: {line}")
                 return []
 
         user_track_rdd = spark.sparkContext.textFile(session_file).flatMap(extract_user_track).filter(lambda x: x is not None)
@@ -155,6 +182,26 @@ if __name__ == "__main__":
         # 测试输出：top_tags_df
         print("=== top_tags_df ===")
         top_tags_df.show(10, truncate=False)
+
+        # 1. 验证原始数据
+        print("原始session数据示例:")
+        print(spark.sparkContext.textFile(session_file).take(3))
+
+        # 2. 验证解析后的DataFrame
+        session_df.createOrReplaceTempView("session_data")
+        spark.sql("""
+                  SELECT COUNT(*)                                    as total_count,
+                         COUNT(CASE WHEN user_id IS NULL THEN 1 END) as null_user_ids,
+                         AVG(session_time)                           as avg_duration
+                  FROM session_data
+                  """).show()
+
+        # 3. 验证join条件
+        print("用户ID匹配情况:")
+        user_df.join(session_agg_df, "user_id", "left") \
+            .groupBy(col("session_count").isNull()) \
+            .count() \
+            .show()
 
         # 6. 合并所有数据
         session_agg_df = session_agg_df.fillna({
