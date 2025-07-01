@@ -1,5 +1,6 @@
 from airflow import DAG
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
+from airflow.operators.empty import EmptyOperator
 from datetime import datetime
 
 default_args = {
@@ -20,6 +21,10 @@ with DAG(
     tags=["spark", "love_sessions", "dw"]
 ) as dag:
 
+    # 起始任务（占位）
+    start = EmptyOperator(task_id='start')
+
+    # Spark 任务：处理 love 和 sessions
     spark_submit_love_sessions = SparkSubmitOperator(
         task_id='parse_love_and_sessions',
         application=SPARK_SCRIPT,
@@ -36,3 +41,8 @@ with DAG(
         verbose=True
     )
 
+    # 结束任务（占位）
+    end = EmptyOperator(task_id='end')
+
+    # 定义依赖关系：start >> spark任务 >> end
+    start >> spark_submit_love_sessions >> end

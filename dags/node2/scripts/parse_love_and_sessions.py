@@ -37,11 +37,11 @@ def parse_sessions(line):
         return []
 
 if __name__ == "__main__":
-    # »ñÈ¡ÃüÁîĞĞ²ÎÊı
+    # è·å–å‘½ä»¤è¡Œå‚æ•°
     entities_base_path = sys.argv[1]
     relations_base_path = sys.argv[2]
 
-    # ³õÊ¼»¯ SparkSession ²¢ÆôÓÃ Hive Ö§³Ö
+    # åˆå§‹åŒ– SparkSession å¹¶å¯ç”¨ Hive æ”¯æŒ
     spark = SparkSession.builder \
         .appName("ThirtyMusicToDW") \
         .enableHiveSupport() \
@@ -56,7 +56,7 @@ if __name__ == "__main__":
         StructField("track_id", LongType())
     ]))
 
-    print("=== LOVE Êı¾İÔ¤ÀÀ ===")
+    print("=== LOVE æ•°æ®é¢„è§ˆ ===")
     love_df.show(10, truncate=False)
 
     spark.sql("""
@@ -87,7 +87,7 @@ if __name__ == "__main__":
         StructField("action", StringType())
     ]))
 
-    print("=== SESSIONS Êı¾İÔ¤ÀÀ ===")
+    print("=== SESSIONS æ•°æ®é¢„è§ˆ ===")
     sessions_df.show(10, truncate=False)
 
     spark.sql("""
