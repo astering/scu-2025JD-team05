@@ -31,7 +31,7 @@ mysql_user = mysql_conn.login
 mysql_password = mysql_conn.password
 
 with DAG(
-    dag_id="user_image_to_mysql",
+    dag_id="user_image_midchart",
     start_date=pendulum.datetime(2025, 1, 1, tz="UTC"),
     catchup=False,
     schedule=None,
