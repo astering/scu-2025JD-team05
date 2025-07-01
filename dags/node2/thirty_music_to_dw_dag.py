@@ -9,7 +9,6 @@ default_args = {
     'catchup': False,
 }
 
-# HDFS路径示例（根据实际路径调整）
 ENTITIES_BASE_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities"
 RELATIONS_BASE_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/relations"
 
