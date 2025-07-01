@@ -1,4 +1,5 @@
 import sys
+from urllib import parse
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, from_json, regexp_replace, udf
@@ -97,9 +98,13 @@ if __name__ == "__main__":
                 return None
             try:
                 # 将字符串转换为字节类型，假设原始编码为latin1
-                byte_str = s.encode('latin1')
+                byte_str = s.encode('ascii')
                 # 使用UTF-8解码字节字符串
                 decoded_str = byte_str.decode('utf-8')
+                '''无效
+                url_encode_str = s.encode('unicode_escape').decode('utf-8').replace('\\x', '%')
+                decoded_str = parse.unquote(url_encode_str)
+                '''
                 return decoded_str
             except Exception as e:
                 print(f"Error decoding string: {e}")
@@ -117,7 +122,8 @@ if __name__ == "__main__":
                 field,
                 # 干脆直接消除首尾引号，不用分组匹配
                 # regexp_replace(col(field), r"^b'|'$", r"")
-                regexp_replace(col(field), r"(^b'|\")|('|\"$)", r"")
+                # 有的条目自己有单引号，首尾是双引号
+                regexp_replace(col(field), r"(^b'|^b\")|('$|\"$)", r"")
                 # schema匹配后的字符串首尾无双引号的情况
                 # regexp_replace(col(field), r"^b'(.*)'$", r"\1")
                 # regexp_replace(col(field), r'^b\'(.*)\'$', r"\1")
