@@ -168,7 +168,6 @@ def main(entities_base_path, relations_base_path):
 
     love_dw = love_df.withColumn("value", col("value"))
     create_and_insert_table(spark, love_dw, "dw_love")
-
     spark.stop()
 
 if __name__ == "__main__":
