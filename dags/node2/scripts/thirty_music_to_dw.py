@@ -88,8 +88,8 @@ def main(entities_base_path, relations_base_path):
         ("playlist", "playlist", StructType([
             StructField("ID", LongType()),
             StructField("Title", StringType()),
-            StructField("numtracks", IntegerType()),
-            StructField("duration", IntegerType()),
+            StructField("numtracks", LongType()),
+            StructField("duration", LongType()),
             StructField("playlist_id", LongType())
         ])),
         ("tags", "tag", StructType([
@@ -98,8 +98,8 @@ def main(entities_base_path, relations_base_path):
             StructField("tag_id", LongType())
         ])),
         ("tracks", "track", StructType([
-            StructField("duration", IntegerType()),
-            StructField("playcount", IntegerType()),
+            StructField("duration", LongType()),
+            StructField("playcount", LongType()),
             StructField("MBID", StringType()),
             StructField("name", StringType()),
             StructField("track_id", LongType())
@@ -109,7 +109,7 @@ def main(entities_base_path, relations_base_path):
             StructField("gender", StringType()),
             StructField("age", IntegerType()),
             StructField("country", StringType()),
-            StructField("playcount", IntegerType()),
+            StructField("playcount", LongType()),
             StructField("playlists", IntegerType()),
             StructField("subscribertype", StringType()),
             StructField("create_time", LongType()),
@@ -133,7 +133,7 @@ def main(entities_base_path, relations_base_path):
             StructField("timestamp", LongType()),
             StructField("user_id", LongType()),
             StructField("track_id", LongType()),
-            StructField("playtime", IntegerType())
+            StructField("playtime", LongType())
         ])
     )
     create_and_insert_table(spark, events_df, "ods_events")
