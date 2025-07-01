@@ -1,4 +1,4 @@
-# from __future__ import annotations
+from __future__ import annotations
 
 import pendulum
 from airflow.models.dag import DAG
@@ -31,11 +31,11 @@ mysql_user = mysql_conn.login
 mysql_password = mysql_conn.password
 
 with DAG(
-    dag_id="spark_etl_mir_data_load_msd",
+    dag_id="user_image_to_mysql",
     start_date=pendulum.datetime(2025, 1, 1, tz="UTC"),
     catchup=False,
     schedule=None,
-    tags=["spark", "etl", "hive"],
+    tags=["spark", "user", "portrait"],
 ) as dag:
 
     start = EmptyOperator(task_id="start")
@@ -95,4 +95,4 @@ with DAG(
     end = EmptyOperator(task_id="end")
 
     # 任务依赖
-    start >> upload_to_hdfs >> ods_load_spark_job >> dw_transform_spark_job >> extract_user_image_job >> end
+    start >> extract_user_image_job >> end
