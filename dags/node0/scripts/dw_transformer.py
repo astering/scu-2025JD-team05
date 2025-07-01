@@ -1,7 +1,7 @@
 import sys
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, from_json, regexp_replace
+from pyspark.sql.functions import col, from_json, regexp_replace, udf
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType, BooleanType
 from pyspark.sql.types import MapType, ArrayType
 
@@ -91,13 +91,37 @@ if __name__ == "__main__":
 
         cleaned_df = parsed_df
 
+        # 定义一个UDF来处理Unicode转义序列
+        def unescape_unicode(s):
+            if s is None:
+                return None
+            try:
+                # 将字符串转换为字节类型，假设原始编码为latin1
+                byte_str = s.encode('latin1')
+                # 使用UTF-8解码字节字符串
+                decoded_str = byte_str.decode('utf-8')
+                return decoded_str
+            except Exception as e:
+                print(f"Error decoding string: {e}")
+                return s
+
+        # 注册UDF
+        unescape_unicode_udf = udf(unescape_unicode, StringType())
+
         # 1. StringType 字段：去除 b'' 包裹
         for field in string_fields:
+            # 首先处理Unicode转义序列
+            cleaned_df = cleaned_df.withColumn(field, unescape_unicode_udf(col(field)))
+
             cleaned_df = cleaned_df.withColumn(
                 field,
-                regexp_replace(col(field), r"^b'|'$", r"")
+                # 干脆直接消除首尾引号，不用分组匹配
+                # regexp_replace(col(field), r"^b'|'$", r"")
+                regexp_replace(col(field), r"(^b'|\")|('|\"$)", r"")
+                # schema匹配后的字符串首尾无双引号的情况
                 # regexp_replace(col(field), r"^b'(.*)'$", r"\1")
                 # regexp_replace(col(field), r'^b\'(.*)\'$', r"\1")
+                # schema匹配后的字符串首尾有双引号的情况
                 # regexp_replace(col(field), r"^\"b'(.*)'\"$", r"\1")
                 # regexp_replace(col(field), r'^"b\'(.*)\'"$', r"\1")
             )
@@ -107,6 +131,7 @@ if __name__ == "__main__":
             cleaned_df = cleaned_df.withColumn(
                 field,
                 regexp_replace(col(field), r'^"(.*)"$', r"\1").cast("int")
+                # regexp_replace(col(field), r'^"|"$', r"")
             )
 
         # 3. DoubleType 字段：去除双引号并转为 double
@@ -114,6 +139,7 @@ if __name__ == "__main__":
             cleaned_df = cleaned_df.withColumn(
                 field,
                 regexp_replace(col(field), r'^"(.*)"$', r"\1").cast("double")
+                # regexp_replace(col(field), r'^"|"$', r"")
             )
 
         dw_df = cleaned_df

@@ -24,7 +24,7 @@ MYSQL_CONN_ID = "mysql_ads_db2"
 MYSQL_DRIVER = "com.mysql.jdbc.Driver"
 
 # 分析结果存入mysql的表名，不能重复，否则覆盖旧版本
-MYSQL_TARGET_TABLE = "something"
+MYSQL_TARGET_TABLE = "acoustic_feature"
 
 # 通过hook获取mysql连接信息
 mysql_conn = BaseHook.get_connection(MYSQL_CONN_ID)
