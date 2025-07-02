@@ -7,7 +7,7 @@ from pyspark.sql.window import Window
 if __name__ == "__main__":
     if len(sys.argv) != 9:
         print("""
-        Usage: top_tracks_to_mysql_node2.py <track_path> <person_path> <album_path> <mysql_url> <mysql_user> <mysql_password> <mysql_driver> <target_table>
+        Usage: top_tracks_to_mysql_1.py <track_path> <person_path> <album_path> <mysql_url> <mysql_user> <mysql_password> <mysql_driver> <target_table>
         """, file=sys.stderr)
         sys.exit(-1)
 
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     mysql_driver = sys.argv[7]
     target_table = sys.argv[8]
 
-    spark = SparkSession.builder.appName("TopTracksETL").getOrCreate()
+    spark = SparkSession.builder.appName("TopTracksToMysql").getOrCreate()
 
     # 1. 定义结构
     track_schema = StructType([

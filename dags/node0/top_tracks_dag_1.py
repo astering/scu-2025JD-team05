@@ -12,7 +12,7 @@ PERSON_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/persons.idomaar"
 ALBUM_PATH = "hdfs://node-master:9000/mir/ThirtyMusic/entities/albums.idomaar"
 
 MYSQL_CONN_ID = "mysql_ads_db2"
-MYSQL_TARGET_TABLE = "top_track"
+MYSQL_TARGET_TABLE = "top_track_1"
 MYSQL_DRIVER = "com.mysql.cj.jdbc.Driver"
 
 # 读取 mysql 连接信息
@@ -22,7 +22,7 @@ mysql_user = mysql_conn.login
 mysql_password = mysql_conn.password
 
 with DAG(
-    dag_id="top_tracks_etl_to_mysql",
+    dag_id="top_tracks_etl_to_mysql_node0",
     start_date=pendulum.datetime(2025, 1, 1, tz="Asia/Shanghai"),
     catchup=False,
     schedule=None,

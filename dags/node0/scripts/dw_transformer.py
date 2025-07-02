@@ -1,7 +1,8 @@
 import sys
+from urllib import parse
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, from_json
+from pyspark.sql.functions import col, from_json, regexp_replace, udf
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType, BooleanType
 from pyspark.sql.types import MapType, ArrayType
 
@@ -27,65 +28,132 @@ if __name__ == "__main__":
         print(f"Successfully read data from ODS table: {ods_table_name}")
 
         music_schema = StructType([
-            StructField("analysis_sample_rate", IntegerType(), True),
-            StructField("artist_7digitalid", IntegerType(), True),
-            StructField("artist_familiarity", DoubleType(), True),
-            StructField("artist_hotttnesss", DoubleType(), True),
+            StructField("analysis_sample_rate", StringType(), True),
+            StructField("artist_7digitalid", StringType(), True),
+            StructField("artist_familiarity", StringType(), True),
+            StructField("artist_hotttnesss", StringType(), True),
             StructField("artist_id", StringType(), True),
-            StructField("artist_latitude", DoubleType(), True),
+            StructField("artist_latitude", StringType(), True),
             StructField("artist_location", StringType(), True),
-            StructField("artist_longitude", DoubleType(), True),
+            StructField("artist_longitude", StringType(), True),
             StructField("artist_mbid", StringType(), True),
             StructField("artist_name", StringType(), True),
-            StructField("artist_playmeid", IntegerType(), True),
+            StructField("artist_playmeid", StringType(), True),
             StructField("audio_md5", StringType(), True),
-            StructField("danceability", DoubleType(), True),
-            StructField("duration", DoubleType(), True),
-            StructField("end_of_fade_in", DoubleType(), True),
-            StructField("energy", DoubleType(), True),
-            StructField("key", IntegerType(), True),
-            StructField("key_confidence", DoubleType(), True),
-            StructField("loudness", DoubleType(), True),
-            StructField("mode", IntegerType(), True),
-            StructField("mode_confidence", DoubleType(), True),
+            StructField("danceability", StringType(), True),
+            StructField("duration", StringType(), True),
+            StructField("end_of_fade_in", StringType(), True),
+            StructField("energy", StringType(), True),
+            StructField("key", StringType(), True),
+            StructField("key_confidence", StringType(), True),
+            StructField("loudness", StringType(), True),
+            StructField("mode", StringType(), True),
+            StructField("mode_confidence", StringType(), True),
             StructField("release", StringType(), True),
-            StructField("release_7digitalid", IntegerType(), True),
-            StructField("song_hotttnesss", DoubleType(), True),
+            StructField("release_7digitalid", StringType(), True),
+            StructField("song_hotttnesss", StringType(), True),
             StructField("song_id", StringType(), True),
-            StructField("start_of_fade_out", DoubleType(), True),
-            StructField("tempo", DoubleType(), True),
-            StructField("time_signature", IntegerType(), True),
-            StructField("time_signature_confidence", DoubleType(), True),
+            StructField("start_of_fade_out", StringType(), True),
+            StructField("tempo", StringType(), True),
+            StructField("time_signature", StringType(), True),
+            StructField("time_signature_confidence", StringType(), True),
             StructField("title", StringType(), True),
-            StructField("track_7digitalid", IntegerType(), True),
+            StructField("track_7digitalid", StringType(), True),
             StructField("track_id", StringType(), True),
-            StructField("year", IntegerType(), True)
+            StructField("year", StringType(), True)
         ])
 
         # 3. 应用业务转换逻辑
-        # 使用 from_json 将 json_body 列解析成一个名为 'parsed_json' 的 struct 列
         print("Applying transformation logic...")
 
-        # 先解析
-        parsed_df = ods_df.withColumn("parsed_json", from_json(col("json_body"), music_schema))
-
-        # # 获取所有字段名，将斜杠替换为下划线
-        # old_fields = parsed_df.select("parsed_json.*").schema.names
-        # new_fields = [f.replace("/", "_") for f in old_fields]
-
-        # # 构造 select 语句，重命名所有字段
-        # select_exprs = [
-        #     f"parsed_json.`{old}` as `{new}`" if old != new else f"parsed_json.`{old}`"
-        #     for old, new in zip(old_fields, new_fields)
-        # ]
-
-        # dw_df = parsed_df.selectExpr(*select_exprs)
-
-        # 没有斜杠，无需处理
-        dw_df = parsed_df
+        # 使用 from_json 将 json_body 列解析成一个名为 'parsed_json' 的 struct 列
+        parsed_df = ods_df.withColumn("parsed_json", from_json(col("json_body"), music_schema)) \
+            .select("parsed_json.*")
 
         # 4. 数据清洗与处理
-        # 自己完成
+        # 手动维护字段类型列表
+        int_fields = [
+            "analysis_sample_rate", "artist_7digitalid", "artist_playmeid", "key",
+            "mode", "release_7digitalid", "time_signature", "track_7digitalid", "year"
+        ]
+        double_fields = [
+            "artist_familiarity", "artist_hotttnesss", "artist_latitude", "artist_longitude",
+            "danceability", "duration", "end_of_fade_in", "energy", "key_confidence",
+            "loudness", "mode_confidence", "song_hotttnesss", "start_of_fade_out",
+            "tempo", "time_signature_confidence"
+        ]
+        string_fields = [
+            "artist_id", "artist_location", "artist_mbid", "artist_name",
+            "audio_md5", "release", "song_id", "title", "track_id",
+        ]
+        # # 其余为 string_fields
+        # all_fields = [f.name for f in music_schema.fields]
+        # string_fields = [f for f in all_fields if f not in int_fields + double_fields]
+
+        cleaned_df = parsed_df
+
+        # 定义一个UDF来处理Unicode转义序列
+        def unescape_unicode(s):
+            if s is None:
+                return None
+            try:
+                '''无效
+                # 将字符串转换为字节类型，假设原始编码为latin1
+                byte_str = s.encode('latin1')
+                # 使用UTF-8解码字节字符串
+                decoded_str = byte_str.decode('utf-8')
+                '''
+                '''无效
+                url_encode_str = s.encode('unicode_escape').decode('utf-8').replace('\\x', '%')
+                decoded_str = parse.unquote(url_encode_str)
+                '''
+                # 下面有效，说明spark在schema匹配时已经把输入固化为字符串，"\x"就是字面内容，和手写str='\x'有区别，后者是转义符
+                url_encode_str = s.replace('\\x', '%')
+                decoded_str = parse.unquote(url_encode_str)
+                return decoded_str
+            except Exception as e:
+                print(f"Error decoding string: {e}")
+                return s
+
+        # 注册UDF
+        unescape_unicode_udf = udf(unescape_unicode, StringType())
+
+        # 1. StringType 字段：去除 b'' 包裹
+        for field in string_fields:
+            # 首先处理Unicode转义序列
+            cleaned_df = cleaned_df.withColumn(field, unescape_unicode_udf(col(field)))
+
+            cleaned_df = cleaned_df.withColumn(
+                field,
+                # 干脆直接消除首尾引号，不用分组匹配
+                # regexp_replace(col(field), r"^b'|'$", r"")
+                # 有的条目自己有单引号，首尾是双引号
+                regexp_replace(col(field), r"(^b'|^b\")|('$|\"$)", r"")
+                # schema匹配后的字符串首尾无双引号的情况
+                # regexp_replace(col(field), r"^b'(.*)'$", r"\1")
+                # regexp_replace(col(field), r'^b\'(.*)\'$', r"\1")
+                # schema匹配后的字符串首尾有双引号的情况
+                # regexp_replace(col(field), r"^\"b'(.*)'\"$", r"\1")
+                # regexp_replace(col(field), r'^"b\'(.*)\'"$', r"\1")
+            )
+
+        # 2. IntegerType 字段：去除双引号并转为 int
+        for field in int_fields:
+            cleaned_df = cleaned_df.withColumn(
+                field,
+                regexp_replace(col(field), r'^"(.*)"$', r"\1").cast("int")
+                # regexp_replace(col(field), r'^"|"$', r"")
+            )
+
+        # 3. DoubleType 字段：去除双引号并转为 double
+        for field in double_fields:
+            cleaned_df = cleaned_df.withColumn(
+                field,
+                regexp_replace(col(field), r'^"(.*)"$', r"\1").cast("double")
+                # regexp_replace(col(field), r'^"|"$', r"")
+            )
+
+        dw_df = cleaned_df
 
         dw_df.show(10)
 
@@ -98,19 +166,9 @@ if __name__ == "__main__":
         # 下面sql表内容不重要，会被覆写
         create_table_sql = f"""
                 CREATE TABLE IF NOT EXISTS {dw_table_name} (
-                    business_id      string,
-                    name             string,
-                    address          string,
-                    city             string,
-                    state            string,
-                    postal_code  string,
                     latitude     float,
-                    longitude    float,
-                    stars        float,
                     review_count int,
                     is_open      tinyint,
-                    attributes   string,
-                    categories   string,
                     hours        string
                 )
                 """

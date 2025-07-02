@@ -3,7 +3,7 @@ import json
 import urllib.parse
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
-    col, from_json, explode, lit, floor, when, row_number, udf
+    col, from_json, explode, lit, floor, when, row_number, udf, array, create_map, size
 )
 from pyspark.sql.types import *
 from pyspark.sql.window import Window
@@ -80,10 +80,13 @@ if __name__ == "__main__":
     ])
     tracks_df = spark.read.option("delimiter", "\t").schema(track_schema).csv(tracks_path)
     tracks_df = tracks_df.withColumn("meta_json", from_json(col("meta"), track_meta_schema))
-    tracks_df = tracks_df.withColumn("tag_structs", when(
-        (col("meta_json.tags").isNotNull()) & (col("meta_json.tags") != []),
-        col("meta_json.tags")
-    ).otherwise(lit([{"type": "tag", "id": "-1"}])))
+    default_tag_struct = array(create_map(lit("type"), lit("tag"), lit("id"), lit("-1")))
+
+    tracks_df = tracks_df.withColumn(
+        "tag_structs",
+        when((col("meta_json.tags").isNotNull()) & (size(col("meta_json.tags")) > 0), col("meta_json.tags"))
+        .otherwise(default_tag_struct)
+    )
     tracks_exploded = tracks_df.select(
         "track_id", explode(col("tag_structs")).alias("tag_struct")
     ).select(

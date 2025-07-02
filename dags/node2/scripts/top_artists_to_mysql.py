@@ -3,16 +3,23 @@ import json
 import urllib.parse
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, desc, sum as _sum
-from pyspark.sql.types import StructType, StructField, LongType, IntegerType, StringType
+from pyspark.sql.types import StructType, StructField, LongType, StringType
 
 if __name__ == "__main__":
-    if len(sys.argv) != 6:
+    if len(sys.argv) != 9:
         print("""
-        Usage: top_artists_to_mysql.py <track_path> <person_path> <jdbc_url> <user> <password>
+        Usage: top_artists_to_mysql.py <track_path> <person_path> <album_path> <jdbc_url> <user> <password> <driver_class> <table_name>
         """, file=sys.stderr)
         sys.exit(-1)
 
-    track_path, person_path, jdbc_url, user, password = sys.argv[1:]
+    track_path = sys.argv[1]
+    person_path = sys.argv[2]
+    album_path = sys.argv[3]  # Not used now, but accepted
+    jdbc_url = sys.argv[4]
+    user = sys.argv[5]
+    password = sys.argv[6]
+    driver_class = sys.argv[7]
+    table_name = sys.argv[8]
 
     spark = SparkSession.builder \
         .appName("Top 100 Artists by Playcount") \
@@ -76,10 +83,10 @@ if __name__ == "__main__":
         top_artist_df.write \
             .format("jdbc") \
             .option("url", jdbc_url) \
-            .option("dbtable", "top_artist") \
+            .option("dbtable", table_name) \
             .option("user", user) \
             .option("password", password) \
-            .option("driver", "com.mysql.jdbc.Driver") \
+            .option("driver", driver_class) \
             .mode("overwrite") \
             .save()
 

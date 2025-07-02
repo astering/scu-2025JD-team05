@@ -37,8 +37,7 @@ MYSQL_CONN_ID = "mysql_ads_db2"
 MYSQL_DRIVER = "com.mysql.jdbc.Driver"
 
 # MYSQL_TARGET_TABLE = "top_20_businesses"
-# MYSQL_TARGET_TABLE = "sum_music"
-MYSQL_TARGET_TABLE = "something"
+MYSQL_TARGET_TABLE = "sum_music"
 
 # 通过hook获取mysql连接信息
 mysql_conn = BaseHook.get_connection(MYSQL_CONN_ID)
