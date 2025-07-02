@@ -32,6 +32,18 @@ if __name__ == "__main__":
             .distinct() \
             .orderBy("artist_familiarity")
 
+        result_df = result_df.filter(col("artist_id").isNotNull())
+
+        result_df = result_df.withColumn(
+            "artist_familiarity",
+            when(isnan(col("artist_familiarity")), 0).otherwise(col("artist_familiarity"))
+        )
+
+        result_df = result_df.withColumn(
+            "artist_hotttnesss",
+            when(isnan(col("artist_hotttnesss")), 0).otherwise(col("artist_hotttnesss"))
+        )
+
         print("result:")
         result_df.show()
 
