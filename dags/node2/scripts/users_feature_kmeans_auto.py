@@ -13,10 +13,10 @@ if __name__ == "__main__":
         .enableHiveSupport() \
         .getOrCreate()
 
-    dw_users = spark.read.table("dw_users")
-    dw_love = spark.read.table("ods_love")
-    dw_events = spark.read.table("dw_events")
-    dw_tags = spark.read.table("ods_tags")
+    dw_users = spark.read.table("dw.dw_users")
+    dw_love = spark.read.table("ods.ods_love")
+    dw_events = spark.read.table("dw.dw_events")
+    dw_tags = spark.read.table("ods.ods_tags")
 
     user_event_count = dw_events.groupBy("user_id").agg(count("*").alias("event_count"))
     user_love_count = dw_love.groupBy("user_id").agg(count("*").alias("love_count"))
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     final_model.write().overwrite().save("/mir/kmeans_model_auto")
 
     dw_users_updated = dw_users.join(clustered_df, on="user_id", how="left")
-    dw_users_updated.write.mode("overwrite").saveAsTable("dw_users")
+    dw_users_updated.write.mode("overwrite").saveAsTable("dw.dw_users")
 
     print("聚类结果已写入 dw_users 表")
     spark.stop()
