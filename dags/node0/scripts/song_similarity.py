@@ -1,6 +1,6 @@
 import sys
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, size, explode
+from pyspark.sql.functions import col, size, explode, when, isnan
 
 if __name__ == "__main__":
     # 需要更多参数来连接 MySQL
@@ -43,6 +43,12 @@ if __name__ == "__main__":
 
         # 过滤空行
         result_df = joined_df.filter(col("similars").isNotNull() & (size(col("similars")) > 0))
+
+        # 将 song_hotttnesss 为 NaN 的值替换为 0
+        result_df = result_df.withColumn(
+            "song_hotttnesss",
+            when(isnan(col("song_hotttnesss")), 0).otherwise(col("song_hotttnesss"))
+        )
 
         # 将similars列展开为多行，并分离为两列
         result_df = result_df.withColumn("similar", explode(col("similars"))) \
