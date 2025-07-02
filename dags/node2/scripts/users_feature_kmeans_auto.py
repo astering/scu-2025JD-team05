@@ -14,9 +14,9 @@ if __name__ == "__main__":
         .getOrCreate()
 
     dw_users = spark.read.table("dw_users")
-    dw_love = spark.read.table("dw_love")
+    dw_love = spark.read.table("ods_love")
     dw_events = spark.read.table("dw_events")
-    dw_tags = spark.read.table("dw_tags")
+    dw_tags = spark.read.table("ods_tags")
 
     user_event_count = dw_events.groupBy("user_id").agg(count("*").alias("event_count"))
     user_love_count = dw_love.groupBy("user_id").agg(count("*").alias("love_count"))
