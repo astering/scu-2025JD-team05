@@ -28,10 +28,17 @@ if __name__ == "__main__":
         print(f"Successfully read data from DW table: {dw_table_name}")
 
         # 3. 分析
+        # 先统计每个 artist_id 出现的次数，命名为 artist_count
+        artist_count_df = dw_df_msd.groupBy("artist_id").count().withColumnRenamed("count", "artist_count")
+
+        # 选择需要的字段并去重
         result_df = dw_df_msd.select("artist_familiarity", "artist_hotttnesss", "artist_id") \
-            .filter(col("artist_id").isNotNull())
-            # .dropDuplicates(["artist_id"])
+            .filter(col("artist_id").isNotNull()) \
+            .dropDuplicates(["artist_id"])
             # .distinct()
+
+        # 将 artist_count 加入结果
+        result_df = result_df.join(artist_count_df, on="artist_id", how="left")
 
         result_df = result_df.withColumn(
             "artist_familiarity",
