@@ -4,7 +4,7 @@ from pyspark.sql.functions import col, size, explode, when, isnan
 
 if __name__ == "__main__":
     # 需要更多参数来连接 MySQL
-    if len(sys.argv) != 8:
+    if len(sys.argv) != 7:
         print("!!!wrong sys.argv!!!", file=sys.stderr)
         sys.exit(-1)
 
