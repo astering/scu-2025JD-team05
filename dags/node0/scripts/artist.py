@@ -29,20 +29,19 @@ if __name__ == "__main__":
 
         # 3. 分析
         result_df = dw_df_msd.select("artist_familiarity", "artist_hotttnesss", "artist_id") \
-            .distinct() \
-            .orderBy("artist_familiarity")
-
-        result_df = result_df.filter(col("artist_id").isNotNull())
+            .filter(col("artist_id").isNotNull())
+            # .dropDuplicates(["artist_id"])
+            # .distinct()
 
         result_df = result_df.withColumn(
             "artist_familiarity",
             when(isnan(col("artist_familiarity")), 0).otherwise(col("artist_familiarity"))
-        )
-
-        result_df = result_df.withColumn(
+        ).withColumn(
             "artist_hotttnesss",
             when(isnan(col("artist_hotttnesss")), 0).otherwise(col("artist_hotttnesss"))
         )
+
+        result_df = result_df.orderBy("artist_familiarity", ascending=False)
 
         print("result:")
         result_df.show()
