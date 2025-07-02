@@ -4,7 +4,6 @@ from airflow.operators.empty import EmptyOperator
 from airflow.hooks.base import BaseHook
 import pendulum
 
-#已修改
 default_args = {
     'start_date': pendulum.datetime(2025, 1, 1, tz="Asia/Shanghai"),
     'catchup': False,
@@ -19,7 +18,7 @@ LOVE_PATH = "hdfs://node-master:9000/user/hive/warehouse/ods_love"
 
 # 读取 Airflow 中配置的 MySQL 连接
 conn = BaseHook.get_connection("mysql_ads_db2")
-MYSQL_URL = f"jdbc:mysql://{conn.host}:{conn.port}/{conn.schema}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai"
+MYSQL_URL = f"jdbc:mysql://{conn.host}:{conn.port}/{conn.schema}?useSSL=false&serverTimezone=UTC"
 
 with DAG(
     dag_id="cf_recommend_to_mysql_dag",
