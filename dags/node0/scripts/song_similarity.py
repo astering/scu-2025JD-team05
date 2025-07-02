@@ -1,6 +1,6 @@
 import sys
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, size
+from pyspark.sql.functions import col, size, explode
 
 if __name__ == "__main__":
     # 需要更多参数来连接 MySQL
@@ -41,7 +41,14 @@ if __name__ == "__main__":
                     "year",
                     "similars")
 
+        # 过滤空行
         result_df = joined_df.filter(col("similars").isNotNull() & (size(col("similars")) > 0))
+
+        # 将similars列展开为多行，并分离为两列
+        result_df = result_df.withColumn("similar", explode(col("similars"))) \
+            .withColumn("similar_track_id", col("similar.track_id")) \
+            .withColumn("similar_score", col("similar.score")) \
+            .drop("similars", "similar")
 
         print("result:")
         result_df.show()
