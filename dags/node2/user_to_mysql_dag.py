@@ -10,7 +10,7 @@ default_args = {
 }
 
 # 脚本路径：读取 Hive 表 dw_users，去除 register_time，写入 MySQL
-SPARK_SCRIPT = "airflow/dags/node2/scripts/dw_users_to_mysql.py"
+SPARK_SCRIPT = "airflow/dags/node2/scripts/user_to_mysql.py"
 
 # 获取 MySQL 连接信息
 conn = BaseHook.get_connection("mysql_ads_db2")
