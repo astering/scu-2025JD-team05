@@ -38,10 +38,8 @@ import YearlyCount from "@/components/dashboard/YearlyCount.vue"
 import ArtistAttribution from "@/components/dashboard/ArtistAttribution.vue";
 import UserAttribution from "@/components/dashboard/UserAttribution.vue";
 import LLM from '@/components/dashboard/LLM.vue';
-import TopTenTrack from "@/components/dashboard/TopTenTrack.vue";
 
 const reports = [
-  { name: '前10流行歌曲', component: TopTenTrack},
   { name: '不同年代听众偏好类型变化', component: DecadePreference },
   { name: '听歌活跃时间段分析', component: ActiveHours },
   { name: '年度歌曲风格变化趋势', component: YearlyTrend },

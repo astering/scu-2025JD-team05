@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy import func, desc
+from sqlalchemy.orm import Session, aliased
 
 from database import SessionLocal
 from models.music import TopTrack
@@ -22,9 +23,36 @@ def get_recommend():
         ]
     }
 
+TOP_TRACKS_LIMIT = 10
+
+def query_top_tracks(db: Session):
+    # 子查询：为每个 track_id 分配 row_number，按 playcount 降序排序
+    ranked_subquery = (
+        db.query(
+            TopTrack,
+            func.row_number().over(
+                partition_by=TopTrack.track_id,
+                order_by=desc(TopTrack.playcount)
+            ).label("row_num")
+        ).subquery()
+    )
+
+    # 创建别名用于主查询
+    ranked_alias = aliased(TopTrack, ranked_subquery)
+
+    # 主查询：只取 row_num == 1 的记录（每个 track_id 一条），再按播放量降序排列
+    query = (
+        db.query(ranked_alias)
+        .filter(ranked_subquery.c.row_num == 1)
+        .order_by(ranked_alias.playcount.desc())
+        .limit(TOP_TRACKS_LIMIT)
+    )
+
+    return query.all()
+
 @router.get("/rank")
 def get_top_tracks(db: Session = Depends(get_db)):
-    tracks = db.query(TopTrack).order_by(TopTrack.playcount.desc()).limit(10).all()
+    tracks = query_top_tracks(db)
     print("后端查询结果:", tracks)
     return [
         {
