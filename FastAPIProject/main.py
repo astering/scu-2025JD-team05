@@ -36,6 +36,7 @@ async def chat(chat_request: ChatRequest):
     response = ai_chat(chat_request.message)
     return {"response": response}
 
+
 # 根路径测试
 @app.get("/")
 def read_root():
