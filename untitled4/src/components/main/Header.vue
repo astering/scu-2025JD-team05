@@ -64,8 +64,6 @@ const router = useRouter();
 const menus = [
   { label: "发现", path: "/home" },
   { label: "排行榜", path: "/rank" },
-  { label: "你的歌单", path: "/playlist" },
-  { label: "推荐歌手", path: "/artists" },
   { label: "驾驶舱", path: "/dashboard" },
 ];
 

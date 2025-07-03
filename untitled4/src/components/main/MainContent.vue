@@ -17,15 +17,42 @@
 
       <!-- 右侧单栏 -->
       <div class="space-y-8">
-        <TopArtists
-          :topArtists="topArtists"
-          @viewAll="viewAll"
-        />
-        <PlaylistList
-          :playlists="playlists"
-          @viewPlaylist="viewPlaylist"
-          @viewAll="viewAll"
-        />
+        <!-- 美化后的 Top10 歌手卡片 -->
+        <section class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-6 shadow-md">
+          <div class="flex items-center mb-4">
+            <h2 class="text-xl font-bold text-white flex items-center">
+              <i class="fas fa-crown text-yellow-400 mr-2"></i>
+              Top10 歌手
+            </h2>
+            <button
+              @click="() => viewAll('artists')"
+              class="ml-auto text-sm text-blue-400 hover:text-blue-300"
+            >
+              查看全部 <i class="fas fa-chevron-right ml-1"></i>
+            </button>
+          </div>
+
+          <ul class="divide-y divide-white/10">
+            <li
+              v-for="(artist, index) in topArtists"
+              :key="artist.id"
+              class="py-3 px-2 cursor-pointer hover:bg-white/5 rounded-lg transition"
+              @click="viewArtist(artist)"
+            >
+              <div class="flex justify-between items-center">
+                <div>
+                  <div class="font-semibold text-white">
+                    {{ index + 1 }}. {{ artist.name.replace(/\+/g, ' ') }}
+                  </div>
+                  <div class="text-sm text-gray-400">
+                    播放量: {{ artist.playcount.toLocaleString() }}
+                  </div>
+                </div>
+                <i class="fas fa-microphone-alt text-purple-400"></i>
+              </div>
+            </li>
+          </ul>
+        </section>
         <ArtistList
           :artists="artists"
           @viewArtist="viewArtist"
@@ -39,14 +66,17 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import axios from "axios";
+import { useRouter } from "vue-router";
 
+const router = useRouter();
 import SongList from "./SongList.vue";
-import AlbumList from "./AlbumList.vue";
-import PlaylistList from "./PlayListList.vue";
-import ArtistList from "./ArtistList.vue";
-import TopArtists from "./TopArtists.vue";
 
+// 推荐歌曲
 const songs = ref([]);
+
+// 后端加载的 topArtists 和 artists（统一来源）
+const topArtists = ref([]);
+const artists = ref([]);
 
 async function fetchRecommendSongs() {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -56,13 +86,12 @@ async function fetchRecommendSongs() {
         params: { user_id: user.user_id }
       });
       songs.value = res.data.tracks.map(track => {
-        // 原始track.title格式: "Bedouin+Soundclash/_/GHM+REEDIT"
         const replaced = track.title.replace(/\+/g, ' ');
         const [artistName, songName] = replaced.split('/_/');
         return {
           id: track.id,
-          title: songName ?? replaced,       // 歌曲名，找不到则用原字符串
-          artist: artistName ?? "推荐系统",  // 歌手名，找不到则默认“推荐系统”
+          title: songName ?? replaced,
+          artist: artistName ?? "推荐系统",
           duration: `推荐评分: ${track.score ?? track.pred_score ?? 'N/A'}`
         };
       });
@@ -74,16 +103,30 @@ async function fetchRecommendSongs() {
   }
 }
 
+// 获取后端返回的 top_artists 数据
+async function fetchArtists() {
+  try {
+    const res = await axios.get("http://127.0.0.1:8000/api/artist/top-artists");
+    const list = res.data.map(item => ({
+      id: item.id,
+      name: item.name,
+      playcount: item.playcount,
+    }));
+    topArtists.value = list.slice(0, 10); // Top 10 展示
+    artists.value = list; // 全部 artist 数据
+  } catch (error) {
+    console.error("获取歌手信息失败", error);
+  }
+}
 
 onMounted(() => {
   fetchRecommendSongs();
-
-  // 监听登录成功事件，自动刷新推荐列表
-  window.addEventListener('user-logged-in', fetchRecommendSongs);
+  fetchArtists();
+  window.addEventListener("user-logged-in", fetchRecommendSongs);
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('user-logged-in', fetchRecommendSongs);
+  window.removeEventListener("user-logged-in", fetchRecommendSongs);
 });
 
 const albums = ref([
@@ -92,41 +135,12 @@ const albums = ref([
   { id: 3, title: "Kaleidoscope", artist: "Coldplay", year: "2019" },
 ]);
 
-const playlists = ref([
-  { id: 1, title: "心情电台", creator: "管理员", tracks: 24 },
-  { id: 2, title: "摇滚精选", creator: "用户A", tracks: 18 },
-  { id: 3, title: "夜晚节奏", creator: "DJ B", tracks: 30 },
-]);
 
-const artists = ref([
-  { id: 1, name: "Taylor Swift", info: "流行", followers: 9800000 },
-  { id: 2, name: "The Weekend", info: "R&B", followers: 9200000 },
-  { id: 3, name: "Ed Sheeran", info: "流行", followers: 8900000 },
-  { id: 4, name: "BTS", info: "K-Pop", followers: 8700000 },
-  { id: 5, name: "Drake", info: "嘻哈", followers: 8500000 },
-]);
-
-const topArtists = ref([
-  { id: 1, name: "Taylor Swift", info: "流行", popularity: 9800 },
-  { id: 2, name: "The Weekend", info: "R&B", popularity: 9200 },
-  { id: 3, name: "Ed Sheeran", info: "流行", popularity: 8900 },
-  { id: 4, name: "BTS", info: "K-Pop", popularity: 8700 },
-  { id: 5, name: "Drake", info: "嘻哈", popularity: 8500 },
-]);
-
-function playSong(song) {
-  alert(`播放歌曲：${song.title} - ${song.artist}`);
-}
-function viewAlbum(album) {
-  alert(`查看专辑：${album.title} - ${album.artist}`);
-}
-function viewPlaylist(playlist) {
-  alert(`查看歌单：${playlist.title} by ${playlist.creator}`);
-}
-function viewArtist(artist) {
-  alert(`查看歌手：${artist.name}`);
-}
 function viewAll(type) {
-  alert(`查看全部：${type}`);
+  if (type === 'artists') {
+    router.push("/artists");
+  } else {
+    alert(`查看全部：${type}`);
+  }
 }
 </script>
