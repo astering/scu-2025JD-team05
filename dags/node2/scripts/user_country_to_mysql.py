@@ -27,7 +27,7 @@ if __name__ == "__main__":
             user_props = json.loads(parts[3])
             country = user_props.get("country", "").strip()
             gender = user_props.get("gender", "").strip().lower()
-            if not country or gender not in ["m", "f"]:
+            if not country or gender not in ["m", "f", "n"]:
                 return None
             return (country, gender)
         except Exception as e:
@@ -50,14 +50,17 @@ if __name__ == "__main__":
     user_df = spark.createDataFrame(user_rdd, schema)
     user_df.cache()
 
-    # 按国家统计男女数量
+    # 按国家统计性别数量：m、f、n
     country_gender_df = user_df.groupBy("country").agg(
         sum(when(col("gender") == "m", 1).otherwise(0)).alias("male_count"),
-        sum(when(col("gender") == "f", 1).otherwise(0)).alias("female_count")
+        sum(when(col("gender") == "f", 1).otherwise(0)).alias("female_count"),
+        sum(when(col("gender") == "n", 1).otherwise(0)).alias("neutral_count")
     )
 
+    # 总人数列
     country_gender_df = country_gender_df.withColumn(
-        "user_count", col("male_count") + col("female_count")
+        "user_count",
+        col("male_count") + col("female_count") + col("neutral_count")
     )
 
     print("===== Top 10 Country Gender Counts =====")
