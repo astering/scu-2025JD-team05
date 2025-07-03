@@ -21,7 +21,7 @@ const router = createRouter({
   routes,
 })
 
-// È«¾ÖÂ·ÓÉÊØÎÀ£ºÎ´µÇÂ¼Ê±Ç¿ÖÆÌø×ªµÇÂ¼Ò³
+// å…¨å±€è·¯ç”±å®ˆå«ï¼šæœªç™»å½•æ—¶å¼ºåˆ¶è·³è½¬ç™»å½•é¡µ
 router.beforeEach((to, from, next) => {
   const user = localStorage.getItem("user");
   if (!user && to.path !== "/login") {

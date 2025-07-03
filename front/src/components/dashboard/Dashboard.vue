@@ -32,7 +32,7 @@ import DecadePreference from '@/components/dashboard/DecadePreference.vue'
 import ActiveHours from '@/components/dashboard/ActiveHours.vue'
 import YearlyTrend from '@/components/dashboard/YearlyTrend.vue'
 import YearlyCount from "@/components/dashboard/YearlyCount.vue"
-import ArtistAttribution from "@/components/dashboard/ArtistAttribution.vue";
+import ArtistDistribution from "@/components/dashboard/ArtistDistribution.vue";
 import UserAttribution from "@/components/dashboard/UserAttribution.vue";
 
 const reports = [
@@ -40,7 +40,7 @@ const reports = [
   { name: '听歌活跃时间段分析', component: ActiveHours },
   { name: '年度歌曲风格变化趋势', component: YearlyTrend },
   { name: '年度歌曲上传量变化趋势', component: YearlyCount },
-  { name: '歌手地区分布', component: ArtistAttribution },
+  { name: '歌手地区分布', component: ArtistDistribution },
   { name: '用户分布热力图',component: UserAttribution }
 ]
 
