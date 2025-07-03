@@ -10,11 +10,12 @@ def main():
                         datefmt='%Y-%m-%d %H:%M:%S')
     logger = logging.getLogger(__name__)
 
-    if len(sys.argv) != 6:
-        logger.error("Usage: cf_recommend_to_mysql.py <events_path> <love_path> <mysql_url> <mysql_user> <mysql_password>")
+    if len(sys.argv) != 8:
+        logger.error(
+            "Usage: cf_recommend_to_mysql.py <events_path> <love_path> <mysql_url> <mysql_user> <mysql_password> <tracks_path> <users_path>")
         sys.exit(-1)
 
-    events_path, love_path, mysql_url, mysql_user, mysql_password = sys.argv[1:]
+    events_path, love_path, mysql_url, mysql_user, mysql_password, tracks_path, users_path = sys.argv[1:]
     logger.info(f"Starting CF recommend job with events_path={events_path}, love_path={love_path}")
 
     spark = SparkSession.builder.appName("CFRecommendToMySQL").getOrCreate()
@@ -33,10 +34,10 @@ def main():
          .withColumn("rating", (col("playtime") * col("decay")).cast("float")) \
          .select(col("user_id").cast("int"), col("track_id").cast("int"), "rating")
 
-        # 2. 读取 dw_love，构造偏好度为1.5
+        # 2. 读取 dw_love，构造偏好度为2.0
         love_df = spark.read.parquet(love_path) \
             .select(col("user_id").cast("int"), col("track_id").cast("int")) \
-            .withColumn("rating", col("user_id") * 0 + 1.5)
+            .withColumn("rating", col("user_id") * 0 + 2.0)
         logger.info(f"Love data count: {love_df.count()}")
 
         # 3. 合并两个评分来源
@@ -68,7 +69,22 @@ def main():
                 col("rec.rating").alias("pred_score")
             )
 
-        # 7. 写入 MySQL，优化参数：
+        # 7. 读取 tracks 表并 join
+        tracks_df = spark.read.parquet(tracks_path) \
+            .select(col("track_id").cast("int"), col("name").alias("track_name"))
+
+        # 8. 读取 users 表并 join
+        users_df = spark.read.parquet(users_path) \
+            .select(col("user_id").cast("int"), col("lastfm_username").alias("user_name"))
+
+        final_df = final_df \
+            .join(tracks_df, on="track_id", how="left") \
+            .join(users_df, on="user_id", how="left")
+
+        # 9. 指定字段顺序
+        final_df = final_df.select("user_id", "user_name", "track_id", "track_name", "pred_score")
+
+        # 10. 写入 MySQL
         final_df.write \
             .format("jdbc") \
             .option("url", mysql_url) \
@@ -81,7 +97,7 @@ def main():
             .mode("overwrite") \
             .save()
 
-        logger.info("协同过滤推荐结果已成功写入 MySQL 表 cf_recommend_result")
+        logger.info("协同过滤推荐结果（含用户名与歌曲名）已成功写入 MySQL 表 cf_recommend_result")
 
     except Exception as e:
         logger.error("任务执行失败，异常信息:", exc_info=True)
@@ -92,4 +108,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -1,11 +1,15 @@
-<!-- 歌曲数量按年份统计报表 -->
 <script setup lang="ts">
 </script>
 
 <template>
   <div class="yearly-count">
     <h2>歌曲数量按年份统计</h2>
-    <img src="/charts/songs_number_per_year.jpg" alt="Songs Number Per Year" />
+    <iframe
+      src="/charts/tracks_per_year_trend.html"
+      class="w-full h-[600px] border rounded"
+      style="min-height: 600px;"
+      frameborder="0"
+    ></iframe>
   </div>
 </template>
 
@@ -15,9 +19,10 @@
   margin-top: 20px;
 }
 
-.yearly-count img {
-  max-width: 100%;
-  height: auto;
+/* iframe 自适应宽度和固定高度 */
+.yearly-count iframe {
+  width: 100%;
+  height: 600px;
   border: 1px solid #ccc;
   border-radius: 8px;
 }
