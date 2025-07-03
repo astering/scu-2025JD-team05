@@ -7,6 +7,7 @@ from starlette.staticfiles import StaticFiles
 from routers import music, auth,  home
 from chat_helper.ai_chat import ai_chat
 
+
 app = FastAPI(title="大数据音乐推荐系统后端")
 
 # 静态文件挂载
@@ -35,7 +36,6 @@ class ChatRequest(BaseModel):
 async def chat(chat_request: ChatRequest):
     response = ai_chat(chat_request.message)
     return {"response": response}
-
 
 # 根路径测试
 @app.get("/")
