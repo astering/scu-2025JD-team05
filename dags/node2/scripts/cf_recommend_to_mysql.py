@@ -10,8 +10,9 @@ def main():
                         datefmt='%Y-%m-%d %H:%M:%S')
     logger = logging.getLogger(__name__)
 
-    if len(sys.argv) != 7:
-        logger.error("Usage: cf_recommend_to_mysql.py <events_path> <love_path> <mysql_url> <mysql_user> <mysql_password> <tracks_path> <users_path>")
+    if len(sys.argv) != 8:
+        logger.error(
+            "Usage: cf_recommend_to_mysql.py <events_path> <love_path> <mysql_url> <mysql_user> <mysql_password> <tracks_path> <users_path>")
         sys.exit(-1)
 
     events_path, love_path, mysql_url, mysql_user, mysql_password, tracks_path, users_path = sys.argv[1:]
