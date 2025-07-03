@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Track Information</title>
+        <style>
+            #tracks,
+            #history {
+                margin-top: 20px;
+            }
+            .track-item {
+                cursor: pointer;
+                padding: 5px;
+                border-bottom: 1px solid #ccc;
+            }
+            .track-item:hover {
+                background-color: #f0f0f0;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Track Information</h1>
+        <div id="search-unit">
+            <input type="text" id="titleInput" placeholder="Title" />
+            <input type="text" id="artistInput" placeholder="Artist" />
+            <input type="text" id="releaseInput" placeholder="Release" />
+            <input type="text" id="trackIdInput" placeholder="Track ID" />
+            <button id="detailBtn" onclick="searchDetail()">详情</button>
+            <button id="similarBtn" onclick="searchSimilar()">相似</button>
+            <span id="loading" style="display:none;margin-left:10px;">正在搜索...</span>
+        </div>
+
+        <div id="tracks"></div>
+
+        <h2>History</h2>
+        <div id="history"></div>
+
+        <script>
+            let historyList = [];
+            let isLoading = false;
+
+            function setLoading(loading) {
+                isLoading = loading;
+                document.getElementById("trackIdInput").disabled = loading;
+                document.getElementById("titleInput").disabled = loading;
+                document.getElementById("artistInput").disabled = loading;
+                document.getElementById("releaseInput").disabled = loading;
+                document.getElementById("detailBtn").disabled = loading;
+                document.getElementById("similarBtn").disabled = loading;
+                document.getElementById("loading").style.display = loading ? "inline" : "none";
+            }
+
+            function getInputData() {
+                return {
+                    track_id: document.getElementById("trackIdInput").value.trim() || null,
+                    title: document.getElementById("titleInput").value.trim() || null,
+                    artist: document.getElementById("artistInput").value.trim() || null,
+                    release: document.getElementById("releaseInput").value.trim() || null
+                };
+            }
+
+            function searchDetail() {
+                if (isLoading) return;
+                setLoading(true);
+                const data = getInputData();
+                fetch("http://127.0.0.1:8000/search", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                })
+                .then(res => res.json())
+                .then(tracks => {
+                    displayTracks(tracks);
+                    let record;
+                    if (tracks && tracks.length > 0) {
+                        record = { type: "detail", data: tracks[0], ok: true };
+                    } else {
+                        record = { type: "detail", data: {
+                            track_id: data.track_id,
+                            title: data.title,
+                            artist: data.artist,
+                            release: data.release,
+                            year: null
+                        }, ok: false };
+                    }
+                    addToHistory(record);
+                    setLoading(false);
+                })
+                .catch(() => setLoading(false));
+            }
+
+            function searchSimilar() {
+                if (isLoading) return;
+                setLoading(true);
+                const data = getInputData();
+                const track_id = data.track_id;
+                if (!track_id) {
+                    alert("请输入track_id");
+                    setLoading(false);
+                    return;
+                }
+                fetch(`http://127.0.0.1:8000/similar/${track_id}`)
+                .then(res => res.json())
+                .then(ids => {
+                    let ok = Array.isArray(ids) && ids.length > 0;
+                    // 先写入历史
+                    addToHistory({
+                        type: "similar",
+                        data: {
+                            track_id: data.track_id,
+                            title: data.title,
+                            artist: data.artist,
+                            release: data.release,
+                            year: null
+                        },
+                        ok: ok
+                    });
+                    if (!ok) {
+                        displayTracks([]);
+                        setLoading(false);
+                        return;
+                    }
+                    // 批量查详情
+                    return fetch("http://127.0.0.1:8000/search", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ track_id_list: ids })
+                    })
+                    .then(res2 => res2.json())
+                    .then(tracks => {
+                        displayTracks(tracks);
+                        setLoading(false);
+                    });
+                })
+                .catch(() => setLoading(false));
+            }
+
+            function displayTracks(tracks) {
+                const tracksContainer = document.getElementById("tracks");
+                tracksContainer.innerHTML = "";
+                if (!tracks || tracks.length === 0) {
+                    tracksContainer.textContent = "无结果";
+                    return;
+                }
+                tracks.forEach((track) => {
+                    const trackElement = document.createElement("div");
+                    trackElement.className = "track-item";
+                    trackElement.textContent = `${track.title} | ${track.artist} | ${track.release} | (${track.year}) | <${track.track_id}>`;
+                    trackElement.onclick = () => {
+                        // 填充全部输入框，不写入历史
+                        document.getElementById("trackIdInput").value = track.track_id || "";
+                        document.getElementById("titleInput").value = track.title || "";
+                        document.getElementById("artistInput").value = track.artist || "";
+                        document.getElementById("releaseInput").value = track.release || "";
+                    };
+                    tracksContainer.appendChild(trackElement);
+                });
+            }
+
+            function addToHistory(record) {
+                historyList.push(record);
+                displayHistory();
+            }
+
+            function displayHistory() {
+                const historyContainer = document.getElementById("history");
+                historyContainer.innerHTML = "";
+                historyList.forEach((rec, idx) => {
+                    const div = document.createElement("div");
+                    div.className = "track-item";
+                    const d = rec.data;
+                    let prefix = rec.type === "detail" ? "[详情] " : "[相似] ";
+                    let status = rec.ok ? "✔" : "✘";
+                    div.textContent = prefix + `${d.title || ""} | ${d.artist || ""} | ${d.release || ""} | (${d.year ?? ""}) | <${d.track_id || ""}> ${status}`;
+                    div.onclick = () => {
+                        document.getElementById("trackIdInput").value = d.track_id || "";
+                        document.getElementById("titleInput").value = d.title || "";
+                        document.getElementById("artistInput").value = d.artist || "";
+                        document.getElementById("releaseInput").value = d.release || "";
+                    };
+                    historyContainer.appendChild(div);
+                });
+            }
+        </script>
+    </body>
+</html>
