@@ -9,10 +9,10 @@ default_args = {
     'catchup': False,
 }
 
-# ½Å±¾Â·¾¶£º¶ÁÈ¡ Hive ±í dw_users£¬È¥³ı register_time£¬Ğ´Èë MySQL
+# è„šæœ¬è·¯å¾„ï¼šè¯»å– Hive è¡¨ dw_usersï¼Œå»é™¤ register_timeï¼Œå†™å…¥ MySQL
 SPARK_SCRIPT = "airflow/dags/node2/scripts/dw_users_to_mysql.py"
 
-# »ñÈ¡ MySQL Á¬½ÓĞÅÏ¢
+# è·å– MySQL è¿æ¥ä¿¡æ¯
 conn = BaseHook.get_connection("mysql_ads_db2")
 mysql_url = f"jdbc:mysql://{conn.host}:{conn.port}/{conn.schema}"
 
