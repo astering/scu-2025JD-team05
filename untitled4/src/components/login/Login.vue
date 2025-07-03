@@ -33,11 +33,15 @@ const router = useRouter()
 async function login() {
   try {
     const response = await axios.post('http://127.0.0.1:8000/api/auth/login', {
-  username: username.value,
-  password: password.value
+      username: username.value,
+      password: password.value
     })
     const user = response.data
     localStorage.setItem('user', JSON.stringify(user))
+
+    // 登录成功后，派发自定义事件通知
+    window.dispatchEvent(new CustomEvent('user-logged-in', { detail: user }))
+
     await router.push('/home')
   } catch (err) {
     alert('登录失败：用户名或密码错误')
