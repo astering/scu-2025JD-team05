@@ -5,12 +5,6 @@
         <i class="fas fa-music text-purple-400 mr-2"></i>
         推荐歌曲
       </h2>
-      <button
-        @click="() => viewAll('songs')"
-        class="ml-auto text-purple-400 hover:text-purple-300 text-sm"
-      >
-        查看全部 <i class="fas fa-chevron-right ml-1"></i>
-      </button>
     </div>
 
     <div class="space-y-4">
@@ -64,11 +58,6 @@ const emit = defineEmits(["play", "viewAll"]);
 function playSong(song) {
   emit("play", song);
   alert(`播放歌曲：${song.title} - ${song.artist}`);
-}
-
-function viewAll(type) {
-  emit("viewAll", type);
-  alert(`查看全部：${type}`);
 }
 
 function likeSong(song) {
