@@ -4,7 +4,7 @@ from fastapi import Request
 from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
 
-from routers import music, auth, live2d, home
+from routers import music, auth,  home
 from chat_helper.ai_chat import ai_chat
 
 app = FastAPI(title="大数据音乐推荐系统后端")
@@ -25,7 +25,6 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(music.router, prefix="/api/music", tags=["Music"])
 app.include_router(home.router, prefix="/api/home", tags=["Home"])
-app.include_router(live2d.router, prefix="/api/live2d", tags=["Live2D"])
 
 # 聊天小助手的数据格式
 class ChatRequest(BaseModel):

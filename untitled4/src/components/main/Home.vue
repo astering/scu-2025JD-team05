@@ -7,7 +7,6 @@
       </template>
     </Header>
     <MainContent />
-<Live2DWidget />
   </div>
 </template>
 
@@ -15,7 +14,6 @@
 import Header from '@/components/main/Header.vue'
 import SearchBar from '@/components/main/SearchBar.vue'
 import MainContent from '@/components/main/MainContent.vue'
-import Live2DWidget from "@/components/live2d/Live2DWidget.vue";
 
 
 function onMenuChange(index) {
