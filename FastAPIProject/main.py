@@ -21,7 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 注册已有模块路由
+# 模块路由
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(music.router, prefix="/api/music", tags=["Music"])
 app.include_router(home.router, prefix="/api/home", tags=["Home"])
