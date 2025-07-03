@@ -37,7 +37,8 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted, onBeforeUnmount } from "vue";
+import axios from "axios";
 
 import SongList from "./SongList.vue";
 import AlbumList from "./AlbumList.vue";
@@ -45,13 +46,45 @@ import PlaylistList from "./PlayListList.vue";
 import ArtistList from "./ArtistList.vue";
 import TopArtists from "./TopArtists.vue";
 
-const songs = ref([
-  { id: 1, title: "贝塔特", artist: "爱奇艺·普莱德曼", year: "1928", duration: "3:45" },
-  { id: 2, title: "Share of You", artist: "马赫威尔", year: "1939", duration: "4:22" },
-  { id: 3, title: "Purple Rain", artist: "The Weekend", year: "1984", duration: "5:02" },
-  { id: 4, title: "Rain on Me", artist: "Lady Gaga", year: "2010", duration: "3:55" },
-  { id: 5, title: "Hallelujah", artist: "杰夫·巴克利", year: "1995", duration: "6:30" },
-]);
+const songs = ref([]);
+
+async function fetchRecommendSongs() {
+  const user = JSON.parse(localStorage.getItem("user"));
+  if (user?.user_id) {
+    try {
+      const res = await axios.get("http://127.0.0.1:8000/api/music/recommend", {
+        params: { user_id: user.user_id }
+      });
+      songs.value = res.data.tracks.map(track => {
+        // 原始track.title格式: "Bedouin+Soundclash/_/GHM+REEDIT"
+        const replaced = track.title.replace(/\+/g, ' ');
+        const [artistName, songName] = replaced.split('/_/');
+        return {
+          id: track.id,
+          title: songName ?? replaced,       // 歌曲名，找不到则用原字符串
+          artist: artistName ?? "推荐系统",  // 歌手名，找不到则默认“推荐系统”
+          duration: `推荐评分: ${track.score ?? track.pred_score ?? 'N/A'}`
+        };
+      });
+    } catch (error) {
+      console.error("获取推荐歌曲失败", error);
+    }
+  } else {
+    console.warn("用户未登录或 user_id 缺失，无法获取推荐");
+  }
+}
+
+
+onMounted(() => {
+  fetchRecommendSongs();
+
+  // 监听登录成功事件，自动刷新推荐列表
+  window.addEventListener('user-logged-in', fetchRecommendSongs);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('user-logged-in', fetchRecommendSongs);
+});
 
 const albums = ref([
   { id: 1, title: "浪漫之歌", artist: "巴赫", year: "2010" },

@@ -1,9 +1,12 @@
+from collections import defaultdict
+from fastapi import Query
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, desc
 from sqlalchemy.orm import Session, aliased
 
 from database import SessionLocal
-from models.music import TopTrack
+from models.music import TopTrack, CFRecommendResult
 
 router = APIRouter()
 
@@ -14,14 +17,39 @@ def get_db():
     finally:
         db.close()
 
+
 @router.get("/recommend")
-def get_recommend():
-    return {
-        "tracks": [
-            {"id": 1, "title": "歌名1", "artist": "歌手1"},
-            {"id": 2, "title": "歌名2", "artist": "歌手2"},
-        ]
-    }
+def get_recommend(user_id: int = Query(...), db: Session = Depends(get_db)):
+    print(f"收到推荐请求 user_id={user_id}")
+
+    results = (
+        db.query(CFRecommendResult)
+        .filter(CFRecommendResult.user_id == user_id)
+        .order_by(CFRecommendResult.pred_score.desc())
+        .all()
+    )
+
+    print(f"推荐结果数量：{len(results)}")
+
+    if not results:
+        print(f"用户 {user_id} 没有推荐记录")
+
+    # 聚合相同 track_name，保留最高分的一个
+    track_dict = defaultdict(list)
+    for r in results:
+        track_dict[r.track_name].append((r.track_id, r.pred_score))
+
+    tracks = []
+    for title, track_list in track_dict.items():
+        best_track = max(track_list, key=lambda x: x[1])
+        tracks.append({
+            "id": best_track[0],
+            "title": title,
+            "score": round(best_track[1], 4)
+        })
+
+    tracks.sort(key=lambda x: x["score"], reverse=True)
+    return {"tracks": tracks}
 
 TOP_TRACKS_LIMIT = 10
 
