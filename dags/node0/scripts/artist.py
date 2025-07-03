@@ -4,17 +4,16 @@ from pyspark.sql.functions import col, size, explode, when, isnan
 
 if __name__ == "__main__":
     # 需要更多参数来连接 MySQL
-    if len(sys.argv) != 8:
+    if len(sys.argv) != 7:
         print("!!!wrong sys.argv!!!", file=sys.stderr)
         sys.exit(-1)
 
     dw_table_name = sys.argv[1]
-    dw_table_name2 = sys.argv[2]
-    mysql_url = sys.argv[3]
-    mysql_user = sys.argv[4]
-    mysql_password = sys.argv[5]
-    mysql_driver = sys.argv[6]
-    mysql_target_table = sys.argv[7]
+    mysql_url = sys.argv[2]
+    mysql_user = sys.argv[3]
+    mysql_password = sys.argv[4]
+    mysql_driver = sys.argv[5]
+    mysql_target_table = sys.argv[6]
 
     # 1. 创建支持 Hive 的 SparkSession
     # 这里的名字会显示在http://node-master:8088/cluster
@@ -27,34 +26,29 @@ if __name__ == "__main__":
         # 2. 从 DW Hive 表读取数据
         dw_df_msd = spark.table(dw_table_name)
         print(f"Successfully read data from DW table: {dw_table_name}")
-        dw_df_fm = spark.table(dw_table_name2)
-        print(f"Successfully read data from DW table: {dw_table_name2}")
 
         # 3. 分析
-        # 连接msd和fm两张表，保留track_id相同的部分
-        joined_df = dw_df_msd.join(dw_df_fm, on="track_id", how="inner") \
-            .select("track_id",
-                    dw_df_fm["title"].alias("title"),
-                    "artist",
-                    "release",
-                    "song_hotttnesss",
-                    "year",
-                    "similars")
+        # 先统计每个 artist_id 出现的次数，命名为 artist_count
+        artist_count_df = dw_df_msd.groupBy("artist_id").count().withColumnRenamed("count", "artist_count")
 
-        # 过滤空行
-        result_df = joined_df.filter(col("similars").isNotNull() & (size(col("similars")) > 0))
+        # 选择需要的字段并去重
+        result_df = dw_df_msd.select("artist_familiarity", "artist_hotttnesss", "artist_id") \
+            .filter(col("artist_id").isNotNull()) \
+            .dropDuplicates(["artist_id"])
+            # .distinct()
 
-        # 将 song_hotttnesss 为 NaN 的值替换为 0
+        # 将 artist_count 加入结果
+        result_df = result_df.join(artist_count_df, on="artist_id", how="left")
+
         result_df = result_df.withColumn(
-            "song_hotttnesss",
-            when(isnan(col("song_hotttnesss")), 0).otherwise(col("song_hotttnesss"))
+            "artist_familiarity",
+            when(isnan(col("artist_familiarity")), 0).otherwise(col("artist_familiarity"))
+        ).withColumn(
+            "artist_hotttnesss",
+            when(isnan(col("artist_hotttnesss")), 0).otherwise(col("artist_hotttnesss"))
         )
 
-        # 将similars列展开为多行，并分离为两列
-        result_df = result_df.withColumn("similar", explode(col("similars"))) \
-            .withColumn("similar_track_id", col("similar.track_id")) \
-            .withColumn("similar_score", col("similar.score")) \
-            .drop("similars", "similar")
+        result_df = result_df.orderBy("artist_familiarity", ascending=False)
 
         print("result:")
         result_df.show()

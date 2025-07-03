@@ -14,11 +14,11 @@ SPARK_SCRIPT = "airflow/dags/node2/scripts/cf_recommend_to_mysql.py"
 
 # 数据路径（HDFS）
 EVENTS_PATH = "hdfs://node-master:9000/user/hive/warehouse/dw_events"
-LOVE_PATH = "hdfs://node-master:9000/user/hive/warehouse/dw_love"
+LOVE_PATH = "hdfs://node-master:9000/user/hive/warehouse/ods_love"
 
 # 读取 Airflow 中配置的 MySQL 连接
 conn = BaseHook.get_connection("mysql_ads_db2")
-MYSQL_URL = f"jdbc:mysql://{conn.host}:{conn.port}/{conn.schema}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai"
+MYSQL_URL = f"jdbc:mysql://{conn.host}:{conn.port}/{conn.schema}?useSSL=false&serverTimezone=UTC"
 
 with DAG(
     dag_id="cf_recommend_to_mysql_dag",
