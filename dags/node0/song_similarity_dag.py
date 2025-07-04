@@ -18,7 +18,7 @@ SPARK_SCRIPTS_PATH = "airflow/dags/node0/scripts"
 # Hive 数据库和表名
 DW_DB = "dw"
 DW_TABLE = "dw_music_msd"
-DW_TABLE2 = "dw_music_fm"
+DW_TABLE2 = "dw_music_fm2"
 DW_TABLE_FQN = f"{DW_DB}.{DW_TABLE}"
 DW_TABLE_FQN2 = f"{DW_DB}.{DW_TABLE2}"
 MYSQL_CONN_ID = "mysql_ads_db2"
