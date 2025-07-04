@@ -1,9 +1,11 @@
 import sys
 import json
 import urllib.parse
+import re
 from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 from pyspark.sql.functions import from_unixtime, col, when, lit
+
 
 def parse_user_line(line):
     parts = line.split("\t")
@@ -12,7 +14,13 @@ def parse_user_line(line):
     try:
         user_id = int(parts[1])
         create_time = int(parts[2])
-        data = json.loads(parts[3])
+
+        # 修复 JSON 中的非法 "age":,
+        json_str = parts[3]
+        json_str = re.sub(r'"age"\s*:\s*,', '"age": null,', json_str)
+        json_str = re.sub(r'"age"\s*:\s*}', '"age": null}', json_str)
+
+        data = json.loads(json_str)
         data = {k: urllib.parse.unquote(v) if isinstance(v, str) else v for k, v in data.items()}
 
         # 清洗字段
