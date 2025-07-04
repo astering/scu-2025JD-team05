@@ -1,5 +1,29 @@
 # Reference
 
+## webui
+
+### HADOOP
+
+#### Nodes Information
+
+http://node-master:9870/
+
+#### Applications
+
+http://node-master:8088/
+
+### HiveServer2
+
+http://node-master:10002/
+
+### Airflow
+
+http://node-master:8080/
+
+### Superset
+
+http://node-master:8888/
+
 ## JIRA
 
 http://118.113.19.133:8180
@@ -7,18 +31,6 @@ http://118.113.19.133:8180
 ## wiki
 
 https://wiki.suncaper.net/pages/viewpage.action?pageId=99614867
-
-## webui
-
-### Airflow
-
-http://node-master:8080/home
-
-### HADOOP
-
-http://node-master:9870/
-
-http://node-master:8088/
 
 ## links
 
