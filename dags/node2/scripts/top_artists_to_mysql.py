@@ -77,7 +77,7 @@ if __name__ == "__main__":
         top_artist_df = joined_df.groupBy("artist_id", "artist_name") \
             .agg(_sum("playcount").alias("total_playcount")) \
             .orderBy(desc("total_playcount")) \
-            .limit(100)
+            .limit(100000)
 
         # 写入 MySQL
         top_artist_df.write \
