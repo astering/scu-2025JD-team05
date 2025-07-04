@@ -2,33 +2,15 @@
 
 > 项目6.基于大数据的MIR(音乐推荐)系统
 
-## JIRA
+## 目录说明
 
-http://118.113.19.133:8180
+- FastAPIProject：后端
 
-## wiki
+- untitled4：前端
 
-https://wiki.suncaper.net/pages/viewpage.action?pageId=99614867
+- dags：spark脚本
 
-## webui
+- msd_wrappers：msd官方提供的[数据读取工具](https://github.com/tbertinmahieux/MSongsDB/blob/master/PythonSrc/)
 
-### Airflow
-
-http://node-master:8080/home
-
-### HADOOP
-
-http://node-master:9870/
-
-http://node-master:8088/
-
-## 参考
-
-https://github.com/TZstatsADS/Spr2016-Proj5-Grp2
-
-https://github.com/AumitLeon/million-songs
-
-https://github.com/tbertinmahieux/MSongsDB
-
-https://github.com/Junbo2002/SCU2024
+- tools：数据预处理工具
 

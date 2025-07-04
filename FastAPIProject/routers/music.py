@@ -51,9 +51,9 @@ def get_recommend(user_id: int = Query(...), db: Session = Depends(get_db)):
     tracks.sort(key=lambda x: x["score"], reverse=True)
     return {"tracks": tracks}
 
-TOP_TRACKS_LIMIT = 10
+TOP_TRACKS_MAX_LIMIT = 50  # 最大支持50条
 
-def query_top_tracks(db: Session):
+def query_top_tracks(db: Session, offset: int = 0, limit: int = 10):
     # 子查询：为每个 track_id 分配 row_number，按 playcount 降序排序
     ranked_subquery = (
         db.query(
@@ -68,20 +68,25 @@ def query_top_tracks(db: Session):
     # 创建别名用于主查询
     ranked_alias = aliased(TopTrack, ranked_subquery)
 
-    # 主查询：只取 row_num == 1 的记录（每个 track_id 一条），再按播放量降序排列
+    # 主查询：只取 row_num == 1 的记录（每个 track_id 一条），再按播放量降序排列，支持分页
     query = (
         db.query(ranked_alias)
         .filter(ranked_subquery.c.row_num == 1)
         .order_by(ranked_alias.playcount.desc())
-        .limit(TOP_TRACKS_LIMIT)
+        .offset(offset)
+        .limit(limit)
     )
 
     return query.all()
 
 @router.get("/rank")
-def get_top_tracks(db: Session = Depends(get_db)):
-    tracks = query_top_tracks(db)
-    print("后端查询结果:", tracks)
+def get_top_tracks(
+    offset: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=TOP_TRACKS_MAX_LIMIT),
+    db: Session = Depends(get_db)
+):
+    tracks = query_top_tracks(db, offset=offset, limit=limit)
+    print(f"后端查询结果 offset={offset} limit={limit} count={len(tracks)}")
     return [
         {
             "id": track.track_id,
