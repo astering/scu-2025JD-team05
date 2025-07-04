@@ -5,6 +5,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 from pyspark.sql.functions import from_unixtime, col, when, lit
 
+
 def parse_user_line(line):
     parts = line.split("\t")
     if len(parts) < 4 or parts[0] != "user":
