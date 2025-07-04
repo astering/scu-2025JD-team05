@@ -66,6 +66,10 @@
 
 ![acoustic-tempo-2025-07-03T03-25-43.797Z](https://s2.loli.net/2025/07/03/9fbi3Y4BxrSOMdJ.jpg)
 
+#### musixmatch词云
+
+![word-cloud-2025-07-04T04-15-44.300Z](https://s2.loli.net/2025/07/04/wThvQyBIPlSnYMX.jpg)
+
 ### 30Music
 
 #### 全球用户数量热力图
