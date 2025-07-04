@@ -23,11 +23,11 @@ def get_similar_songs_by_title(song_title: str,
         res = conn.execute(query_track, {"title": song_title}).fetchone()
 
         if not res:
-            print(f"❌ 未找到歌曲《{song_title}》。")
+            print(f"未找到歌曲《{song_title}》。")
             return None
         track_id, matched_title = res
 
-        # 2. 查相似歌曲列表（多查以便去重后够用）
+        # 2. 查相似歌曲列表
         query_similar = text(f"""
             SELECT similar_track_id, similar_score
             FROM {sim_table}
@@ -38,7 +38,7 @@ def get_similar_songs_by_title(song_title: str,
         similars = conn.execute(query_similar, {"track_id": track_id}).fetchall()
 
         if not similars:
-            print(f"⚠️ 未找到《{matched_title}》的相似歌曲。")
+            print(f"未找到《{matched_title}》的相似歌曲。")
             return None
 
         # 3. 查询详细信息并去重
@@ -71,25 +71,9 @@ def get_similar_songs_by_title(song_title: str,
             print("⚠️ 找不到任何对应的相似歌曲详细信息。")
             return None
 
-        # 4. 让娘娘选择下一首
-        while True:
-            choice = input(f"\n👑 娘娘是否想继续探索其中一首歌？请输入 1~{output_count} 的编号（或输入 n 退出）：").strip()
-            if choice.lower() == 'n':
-                print("🌸 感谢娘娘赏阅，推荐完毕。")
-                return None
-            if choice.isdigit():
-                idx = int(choice)
-                if 1 <= idx <= output_count:
-                    return songs[idx - 1][0]  # 返回下一首歌名
-                else:
-                    print("⚠️ 编号不在范围内，请重新输入。")
-            else:
-                print("⚠️ 输入有误，请重新输入。")
+        return songs  # 返回完整列表，便于后续展示或API传输
 
 if __name__ == "__main__":
     current_song = input("请输入歌曲名称：").strip()
-    while current_song:
-        next_song = get_similar_songs_by_title(current_song)
-        if next_song is None:
-            break
-        current_song = next_song
+    if current_song:
+        results = get_similar_songs_by_title(current_song)
