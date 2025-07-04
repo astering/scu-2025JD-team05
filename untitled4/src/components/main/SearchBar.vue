@@ -26,12 +26,12 @@ function onKeydown(event: KeyboardEvent) {
       v-model="keyword"
       type="text"
       placeholder="输入歌曲名称..."
-      class="rounded-xl p-2 px-4 w-72 text-black shadow focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200"
+      class="rounded-xl p-2 px-4 w-72 text-black shadow focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
       @keydown="onKeydown"
     />
     <button
       @click="handleSearch"
-      class="bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 transition-all duration-200"
+      class="bg-purple-500 text-white px-4 py-2 rounded-xl hover:bg-purple-600 transition-all duration-200"
     >
       搜索
     </button>

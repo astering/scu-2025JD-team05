@@ -64,3 +64,8 @@ body {
   color: white;
   transform: scale(1.1);
 }
+
+.vue-devtools__anchor,
+.vue-devtools__anchor--hide {
+  display: none !important;
+}
