@@ -1,3 +1,6 @@
+# 已经在.gitignore文件忽略了.idea/整个文件夹，这个文件是细分版本，不需要了
+# 除非使用pycharm并且需要留下.idea/里面的一些东西，那就注释掉.gitignore里面的.idea/那一行，然后把这个文件内容复制到.gitignore里面
+
 # https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 # Covers JetBrains IDEs: IntelliJ, GoLand, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
