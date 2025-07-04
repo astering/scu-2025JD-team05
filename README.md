@@ -2,10 +2,12 @@
 
 ## 使用数据集
 
-- MSD（Million Song Dataset）
-- MSD's Last.fm
-- 30Music（Thirty Music）
-- MSD's musixmatch（提供歌词分析）
+- [MSD](http://millionsongdataset.com/)（Million Song Dataset）
+- [MSD's Last.fm](http://millionsongdataset.com/lastfm/)（补充字段）
+- [30Music](https://recsys.deib.polimi.it/datasets/)（Thirty Music，和MSD无关）
+- [MSD's musixmatch](http://millionsongdataset.com/musixmatch/)（提供歌词分析）
+
+> 更多数据集[参见](https://zhuanlan.zhihu.com/p/472900252)
 
 ## 可视化
 
