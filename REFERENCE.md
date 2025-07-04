@@ -24,13 +24,17 @@ http://node-master:8080/
 
 http://node-master:8888/
 
-## JIRA
+## dataset
 
-http://118.113.19.133:8180
+### MSD
 
-## wiki
+http://millionsongdataset.com/
 
-https://wiki.suncaper.net/pages/viewpage.action?pageId=99614867
+### 30Music
+
+https://recsys.deib.polimi.it/datasets/
+
+> The dataset is available at this [link](https://polimi365-my.sharepoint.com/:u:/g/personal/10322330_polimi_it/Efbx_LL9CJNHq1625JuHe4UBQnGbRg1FHjLKU1EgmRhXwA?e=4xKcOs).
 
 ## links
 
