@@ -6,7 +6,6 @@ from starlette.staticfiles import StaticFiles
 
 from routers import music, auth, home, artist, similarity
 from chat_helper.ai_chat import ai_chat
-
 app = FastAPI(title="大数据音乐推荐系统后端")
 
 # 静态文件挂载
