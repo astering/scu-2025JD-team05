@@ -19,14 +19,14 @@ SPARK_SCRIPTS_PATH = "airflow/dags/node0/scripts"
 
 HDFS_RAW_DATA_PATH = "hdfs://node-master:9000/mir/millionsongsubset" # 末尾不能有斜杠
 LOCAL_FILE_DATA_PATH = "~/mir/millionsongsubset" # 末尾不能有斜杠
-FILE_NAME = "lastfm_subset.json" # 前面不能有斜杠
+FILE_NAME = "lastfm_full.json" # 前面不能有斜杠
 
 # Hive 数据库和表名
 ODS_DB = "ods"
 DW_DB = "dw"
 
-ODS_TABLE = "ods_music_fm"
-DW_TABLE = "dw_music_fm"
+ODS_TABLE = "ods_music_fm2"
+DW_TABLE = "dw_music_fm2"
 
 ODS_TABLE_FQN = f"{ODS_DB}.{ODS_TABLE}"  # FQN: Fully Qualified Name
 DW_TABLE_FQN = f"{DW_DB}.{DW_TABLE}"
