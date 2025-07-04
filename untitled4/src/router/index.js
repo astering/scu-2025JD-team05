@@ -6,6 +6,7 @@ import RankPage from '@/components/rank/Rank.vue'
 import PlaylistPage from '@/components/rank/Playlist.vue'
 import ArtistPage from '@/components/rank/Artist.vue'
 
+
 const routes = [
   { path: '/', redirect: '/login' },
   { path: '/login', component: Login },
@@ -13,7 +14,7 @@ const routes = [
   { path: '/dashboard', component: DashboardPage },
   { path: '/rank', component: RankPage },
   { path: '/playlist', component: PlaylistPage },
-  { path: '/artists', component: ArtistPage}
+  { path: '/artists', component: ArtistPage},
 ]
 
 const router = createRouter({
