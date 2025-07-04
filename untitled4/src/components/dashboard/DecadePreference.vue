@@ -4,16 +4,17 @@
 
     <!-- 下拉菜单选择图表类型 -->
     <div class="mb-4">
-      <label for="chartType" class="mr-2 text-gray-700">选择图表：</label>
+      <label for="chartType" class="mr-2 text-white">选择图表：</label>
       <select
-        id="chartType"
-        v-model="selectedChart"
-        class="border rounded px-3 py-1"
+          id="chartType"
+          v-model="selectedChart"
+          class="border border-slate-600 rounded px-3 py-1 bg-slate-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
       >
-        <option value="heatmap">热力图</option>
-        <option value="bar">柱状图</option>
+        <option class="bg-slate-800 text-white" value="heatmap">热力图</option>
+       <option class="bg-slate-800 text-white" value="bar">柱状图</option>
       </select>
     </div>
+
 
     <!-- 根据选择显示图表 -->
     <iframe
