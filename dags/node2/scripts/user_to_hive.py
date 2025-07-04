@@ -15,7 +15,7 @@ def parse_user_line(line):
         data = json.loads(parts[3])
         data = {k: urllib.parse.unquote(v) if isinstance(v, str) else v for k, v in data.items()}
 
-        # ÇåÏ´×Ö¶Î
+        # æ¸…æ´—å­—æ®µ
         age = data.get("age")
         if age is None or not isinstance(age, int):
             age = -1
@@ -47,7 +47,7 @@ def create_and_insert_table(spark, df, table_name):
 def main(users_file_path):
     spark = SparkSession.builder.appName("Users ETL to ODS & DW").enableHiveSupport().getOrCreate()
 
-    # ¶ÁÈ¡²¢½âÎö users.idomaar
+    # è¯»å–å¹¶è§£æ users.idomaar
     rdd = spark.sparkContext.textFile(users_file_path)
     parsed_rdd = rdd.map(parse_user_line).filter(lambda x: x is not None)
 
@@ -65,10 +65,10 @@ def main(users_file_path):
 
     df = spark.createDataFrame(parsed_rdd, schema)
 
-    # Ğ´Èë ODS ±í
+    # å†™å…¥ ODS è¡¨
     create_and_insert_table(spark, df, "ods_users")
 
-    # Ğ´Èë DW ±í£¨Ôö¼Ó×¢²áÊ±¼ä×Ö¶Î£©
+    # å†™å…¥ DW è¡¨ï¼ˆå¢åŠ æ³¨å†Œæ—¶é—´å­—æ®µï¼‰
     dw_df = df.withColumn("register_time", from_unixtime(col("create_time")))
     create_and_insert_table(spark, dw_df, "dw_users")
 
