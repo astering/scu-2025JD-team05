@@ -1,11 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
+
+// 页面组件导入
 import Login from '@/components/login/Login.vue'
 import DashboardPage from '@/components/dashboard/Dashboard.vue'
-import Home from "@/components/main/Home.vue";
+import Home from "@/components/main/Home.vue"
 import RankPage from '@/components/rank/Rank.vue'
-import PlaylistPage from '@/components/rank/Playlist.vue'
 import ArtistPage from '@/components/rank/Artist.vue'
-
+import SearchPage from '@/components/main/Search.vue'
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -13,8 +14,8 @@ const routes = [
   { path: '/home', component: Home },
   { path: '/dashboard', component: DashboardPage },
   { path: '/rank', component: RankPage },
-  { path: '/playlist', component: PlaylistPage },
-  { path: '/artists', component: ArtistPage},
+  { path: '/artists', component: ArtistPage },
+  { path: '/search', name: 'search', component: SearchPage }
 ]
 
 const router = createRouter({
@@ -33,4 +34,3 @@ router.beforeEach((to, from, next) => {
 });
 
 export default router;
-
